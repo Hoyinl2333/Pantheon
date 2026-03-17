@@ -229,7 +229,7 @@ ${useWorkspaceMode ? `"[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Workspace: ${
 ${promptBlock}
 
 try {
-  & $claudePath -p $prompt${cwdArg} 2>&1 | ForEach-Object {
+  & $claudePath -p $prompt --dangerously-skip-permissions${cwdArg} 2>&1 | ForEach-Object {
     $line = "[$(Get-Date -Format 'HH:mm:ss')] $_"
     $line | Out-File -FilePath $logFile -Append -Encoding utf8
     Write-Host $_
@@ -251,14 +251,16 @@ Start-Sleep -Seconds 2
   }
 
   // Launch in a new visible PowerShell window (survives browser close)
+  // NOTE: cmd.exe "start" requires the window title in double quotes,
+  // otherwise it tries to execute the title as a command.
+  // Sanitize skill name to ASCII to avoid Windows encoding issues.
+  const safeTitle = skill.replace(/[^a-zA-Z0-9 _\-]/g, "").slice(0, 40) || "skill";
   const child = spawn("cmd.exe", [
-    "/c", "start",
-    `ARIS: ${skill}`,
-    "powershell.exe",
-    "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", psScript,
+    "/c", `start "ARIS: ${safeTitle}" powershell.exe -NoProfile -ExecutionPolicy Bypass -File "${psScript}"`,
   ], {
     detached: true,
     stdio: "ignore",
+    windowsVerbatimArguments: true,
   });
 
   child.unref();

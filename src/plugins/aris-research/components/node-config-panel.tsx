@@ -2,7 +2,8 @@
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { X, AlertCircle } from "lucide-react";
+import { X, AlertCircle, Shield } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { ARIS_SKILLS } from "../skill-data";
 import { buildCommand, getValidationErrors } from "../lib/build-pipeline-commands";
 import { ParamInput } from "./param-input";
@@ -94,6 +95,29 @@ export function NodeConfigPanel({ node, onUpdate, onClose, isZh }: NodeConfigPan
               );
             })}
           </div>
+        )}
+
+        {/* Human Checkpoint Toggle */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <Shield className="h-3.5 w-3.5 text-amber-500" />
+            <span className="text-xs font-medium">
+              {isZh ? "人工检查点" : "Human Checkpoint"}
+            </span>
+          </div>
+          <Switch
+            checked={node.checkpoint ?? false}
+            onCheckedChange={(checked) =>
+              onUpdate(node.id, { checkpoint: checked })
+            }
+          />
+        </div>
+        {node.checkpoint && (
+          <p className="text-[10px] text-muted-foreground -mt-2 pl-5">
+            {isZh
+              ? "执行到此节点前暂停，等待你确认后继续"
+              : "Pauses before this node and waits for your approval"}
+          </p>
         )}
 
         {/* Notes */}

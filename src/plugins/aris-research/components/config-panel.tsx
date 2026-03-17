@@ -164,6 +164,58 @@ export function ConfigPanel() {
                 onChange={(e) => update({ feishuWebhook: e.target.value || undefined })}
               />
             </div>
+
+            {/* --- Notification Settings --- */}
+            <div className="sm:col-span-2 border-t pt-3 mt-1">
+              <h4 className="text-xs font-semibold mb-3">Pipeline Notifications</h4>
+            </div>
+
+            {/* Notify Enable */}
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-medium">Enable Notifications</label>
+              <Switch size="sm" checked={config.notifyEnabled ?? false} onCheckedChange={(v) => update({ notifyEnabled: v })} />
+            </div>
+
+            {/* Notify Channel */}
+            <div className="space-y-1">
+              <label className="text-xs font-medium">Channel</label>
+              <Select
+                value={config.notifyChannel ?? "telegram"}
+                onValueChange={(v) => update({ notifyChannel: v as ArisConfig["notifyChannel"] })}
+                disabled={!config.notifyEnabled}
+              >
+                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="telegram">Telegram</SelectItem>
+                  <SelectItem value="feishu">Feishu / Lark</SelectItem>
+                  <SelectItem value="both">Both</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Telegram Chat ID */}
+            {(config.notifyChannel === "telegram" || config.notifyChannel === "both" || !config.notifyChannel) && (
+              <div className="space-y-1 sm:col-span-2">
+                <label className="text-xs font-medium">Telegram Chat ID</label>
+                <Input className="h-8 text-xs" placeholder="e.g. 123456789"
+                  disabled={!config.notifyEnabled}
+                  value={config.notifyTelegramChatId ?? ""}
+                  onChange={(e) => update({ notifyTelegramChatId: e.target.value || undefined })}
+                />
+              </div>
+            )}
+
+            {/* Feishu Chat ID */}
+            {(config.notifyChannel === "feishu" || config.notifyChannel === "both") && (
+              <div className="space-y-1 sm:col-span-2">
+                <label className="text-xs font-medium">Feishu Chat ID</label>
+                <Input className="h-8 text-xs" placeholder="oc_xxxxxxxx"
+                  disabled={!config.notifyEnabled}
+                  value={config.notifyFeishuChatId ?? ""}
+                  onChange={(e) => update({ notifyFeishuChatId: e.target.value || undefined })}
+                />
+              </div>
+            )}
           </div>
 
           <DialogFooter>

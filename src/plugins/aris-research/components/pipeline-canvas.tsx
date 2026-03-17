@@ -26,10 +26,12 @@ import { PIPELINE_TEMPLATES } from "../pipeline-templates";
 import { savePipeline, getPipeline } from "../pipeline-store";
 import { PipelineExecutor, type ExecutionEvent } from "../lib/pipeline-executor";
 import { getExecutionState, clearExecutionState } from "../lib/execution-state";
+import { getArisConfig } from "../aris-store";
 import { nodeTypes } from "./skill-node";
 import { SkillPalette } from "./skill-palette";
 import { PipelineToolbar } from "./pipeline-toolbar";
 import { NodeConfigPanel } from "./node-config-panel";
+import { NodeOutputPanel } from "./node-output-panel";
 import { ResearchProgramEditor } from "./research-program-editor";
 import { ExecutionMonitor } from "./execution-monitor";
 
@@ -42,7 +44,7 @@ function toFlowNodes(pNodes: PipelineNode[], isZh: boolean): Node[] {
     id: n.id,
     type: "skill",
     position: n.position,
-    data: { skillId: n.skillId, status: n.status, paramValues: n.paramValues, notes: n.notes, isZh },
+    data: { skillId: n.skillId, status: n.status, paramValues: n.paramValues, notes: n.notes, isZh, checkpoint: n.checkpoint },
   }));
 }
 
@@ -62,6 +64,7 @@ function fromFlowNodes(nodes: Node[]): PipelineNode[] {
     status: (n.data.status as NodeStatus) ?? "idle",
     paramValues: (n.data.paramValues as Record<string, string>) ?? {},
     notes: (n.data.notes as string) ?? "",
+    checkpoint: (n.data.checkpoint as boolean) ?? false,
   }));
 }
 
@@ -91,6 +94,7 @@ function PipelineCanvasInner({ locale }: { locale: string }) {
   const [resumeNodeId, setResumeNodeId] = useState<string | null>(null);
   const [workspacePath, setWorkspacePath] = useState<string | null>(null);
   const [workspaceName, setWorkspaceName] = useState<string | null>(null);
+  const [pendingCheckpoint, setPendingCheckpoint] = useState<string | null>(null);
   const executorRef = useRef<PipelineExecutor | null>(null);
   // True when executor is actively running in THIS browser tab (not restored from reload)
   const executorActiveRef = useRef(false);
@@ -141,6 +145,12 @@ function PipelineCanvasInner({ locale }: { locale: string }) {
       return { ...n, data: { ...n.data, ...patch } };
     }));
   }, [setNodes]);
+
+  const handleCheckpointResolve = useCallback((approved: boolean) => {
+    if (pendingCheckpoint && executorRef.current) {
+      executorRef.current.resolveCheckpoint(pendingCheckpoint, approved);
+    }
+  }, [pendingCheckpoint]);
 
   const updateNodeStatus = useCallback((nodeId: string, status: NodeStatus) => {
     setNodes((nds) => nds.map((n) =>
@@ -304,15 +314,30 @@ function PipelineCanvasInner({ locale }: { locale: string }) {
   const createExecutionListener = useCallback((onDone?: () => void) => {
     return (event: ExecutionEvent) => {
       if (event.type === "node-status" && event.nodeId && event.status) {
-        updateNodeStatus(event.nodeId, event.status);
+        updateNodeStatus(event.nodeId, event.status as NodeStatus);
       }
       if (event.type === "log" && event.message) {
         setExecutionLogs((prev) => [...prev.slice(-100), `[${new Date().toLocaleTimeString()}] ${event.message}`]);
+      }
+      if (event.type === "checkpoint-pending" && event.nodeId) {
+        setPendingCheckpoint(event.nodeId);
+        setExecutionLogs((prev) => [
+          ...prev,
+          `[${new Date().toLocaleTimeString()}] ⏸ CHECKPOINT: Waiting for approval at node ${event.nodeId}`,
+        ]);
+      }
+      if (event.type === "checkpoint-resolved" && event.nodeId) {
+        setPendingCheckpoint(null);
+        setExecutionLogs((prev) => [
+          ...prev,
+          `[${new Date().toLocaleTimeString()}] ✓ Checkpoint ${event.message}: ${event.nodeId}`,
+        ]);
       }
       if (event.type === "pipeline-done" || event.type === "pipeline-error") {
         setIsRunning(false);
         setCanResume(false);
         setResumeNodeId(null);
+        setPendingCheckpoint(null);
         setExecutionLogs((prev) => [...prev, `\n=== ${event.message} ===`]);
         onDone?.();
       }
@@ -346,10 +371,23 @@ function PipelineCanvasInner({ locale }: { locale: string }) {
       // Non-blocking — execution continues without workspace
     }
 
+    // Load config for notifier settings
+    const config = await getArisConfig();
+
     const executor = new PipelineExecutor(
       currentPipeline,
       createExecutionListener(() => { executorActiveRef.current = false; }),
-      { maxParallel: 2 }
+      {
+        maxParallel: 2,
+        notifier: config.notifyEnabled
+          ? {
+              enabled: true,
+              channel: config.notifyChannel ?? "telegram",
+              telegramChatId: config.notifyTelegramChatId,
+              feishuChatId: config.notifyFeishuChatId,
+            }
+          : undefined,
+      }
     );
 
     executorRef.current = executor;
@@ -435,24 +473,48 @@ function PipelineCanvasInner({ locale }: { locale: string }) {
 
           {/* Execution log overlay */}
           {executionLogs.length > 0 && showLogs && (
-            <div className="absolute bottom-2 left-14 right-2 max-h-[150px] bg-zinc-950/90 backdrop-blur-sm text-zinc-200 rounded-lg p-3 overflow-y-auto font-mono text-[11px] leading-relaxed border border-zinc-700">
-              <button
-                onClick={() => setShowLogs(false)}
-                className="absolute top-1 right-2 text-zinc-400 hover:text-zinc-100 text-xs px-1"
-                title={isZh ? "关闭日志" : "Close logs"}
-              >
-                ✕
-              </button>
-              {workspaceName && (
-                <div className="text-zinc-400 mb-1 text-[10px]">
-                  {workspaceName} — {workspacePath}
+            <div className="absolute bottom-2 left-14 right-2 max-h-[150px] bg-zinc-950/90 backdrop-blur-sm text-zinc-200 rounded-lg border border-zinc-700 flex flex-col">
+              {/* Sticky header with close button */}
+              <div className="flex items-center justify-between px-3 pt-2 pb-1 shrink-0">
+                <div className="text-zinc-400 text-[10px] truncate">
+                  {workspaceName ? `${workspaceName} — ${workspacePath}` : (isZh ? "执行日志" : "Execution Log")}
+                </div>
+                <button
+                  onClick={() => setShowLogs(false)}
+                  className="text-zinc-400 hover:text-zinc-100 text-xs px-1 shrink-0 ml-2"
+                  title={isZh ? "关闭日志" : "Close logs"}
+                >
+                  ✕
+                </button>
+              </div>
+              {/* Scrollable log content */}
+              <div className="overflow-y-auto px-3 pb-2 font-mono text-[11px] leading-relaxed flex-1 min-h-0">
+                {executionLogs.map((log, i) => (
+                  <div key={i} className={log.includes("ERROR") ? "text-red-400" : log.includes("Completed") ? "text-green-400" : log.includes("CHECKPOINT") ? "text-yellow-400 font-semibold" : ""}>
+                    {log}
+                  </div>
+                ))}
+              </div>
+              {/* Checkpoint approval bar */}
+              {pendingCheckpoint && (
+                <div className="flex items-center gap-2 px-3 py-2 border-t border-zinc-700 bg-yellow-950/50 shrink-0">
+                  <span className="text-yellow-400 text-[11px] font-semibold flex-1">
+                    {isZh ? "⏸ 等待人工确认..." : "⏸ Waiting for approval..."}
+                  </span>
+                  <button
+                    onClick={() => handleCheckpointResolve(false)}
+                    className="px-2 py-0.5 rounded text-[11px] bg-red-800 hover:bg-red-700 text-red-200"
+                  >
+                    {isZh ? "拒绝" : "Reject"}
+                  </button>
+                  <button
+                    onClick={() => handleCheckpointResolve(true)}
+                    className="px-2 py-0.5 rounded text-[11px] bg-green-800 hover:bg-green-700 text-green-200"
+                  >
+                    {isZh ? "批准继续" : "Approve"}
+                  </button>
                 </div>
               )}
-              {executionLogs.map((log, i) => (
-                <div key={i} className={log.includes("ERROR") ? "text-red-400" : log.includes("Completed") ? "text-green-400" : ""}>
-                  {log}
-                </div>
-              ))}
             </div>
           )}
           {/* Show logs button when hidden */}
@@ -466,12 +528,19 @@ function PipelineCanvasInner({ locale }: { locale: string }) {
           )}
         </div>
 
-        {selectedNode && (
+        {selectedNode && selectedNode.status === "done" ? (
+          <NodeOutputPanel
+            node={selectedNode}
+            workspacePath={workspacePath}
+            onClose={() => setSelectedNodeId(null)}
+            isZh={isZh}
+          />
+        ) : selectedNode ? (
           <NodeConfigPanel
             node={selectedNode} onUpdate={onUpdateNode}
             onClose={() => setSelectedNodeId(null)} isZh={isZh}
           />
-        )}
+        ) : null}
       </div>
 
       <ResearchProgramEditor program={program} onChange={setProgram} isZh={isZh} />

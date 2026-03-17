@@ -14,6 +14,8 @@ import {
   type ExecutionEvent,
   type ExecutionListener,
   type BaseExecutorOptions,
+  type NotifierConfig,
+  createPipelineNotifier,
 } from "@/lib/execution";
 import { saveExecutionState, type ExecutionState } from "./execution-state";
 
@@ -25,12 +27,16 @@ export interface ExecutorOptions extends BaseExecutorOptions {
   maxParallel?: number;
   /** Resume from checkpoint — skip nodes already done */
   resumeFrom?: string; // last completed node ID
+  /** Notification configuration */
+  notifier?: NotifierConfig;
 }
 
 export class PipelineExecutor extends BaseExecutor<PipelineNode, PipelineEdge> {
   private readonly pipelineId: string;
+  private readonly pipelineName: string;
   private currentSessionIds = new Set<string>();
   private startTime = Date.now();
+  private readonly sendNotify: ReturnType<typeof createPipelineNotifier> | null;
 
   constructor(pipeline: Pipeline, listener: ExecutionListener, options?: ExecutorOptions) {
     super(pipeline.nodes, pipeline.edges, listener, {
@@ -38,11 +44,28 @@ export class PipelineExecutor extends BaseExecutor<PipelineNode, PipelineEdge> {
       resumeFrom: options?.resumeFrom,
     });
     this.pipelineId = pipeline.id;
+    this.pipelineName = pipeline.name || pipeline.id;
+
+    // Setup notifier
+    this.sendNotify = options?.notifier?.enabled
+      ? createPipelineNotifier(options.notifier, this.pipelineName)
+      : null;
 
     // Register checkpoint callback for state persistence
     this.onCheckpoint(async (completedIds, errorIds, skippedIds) => {
       await this.persistCheckpoint(completedIds, errorIds, skippedIds);
     });
+  }
+
+  protected isCheckpointNode(node: PipelineNode): boolean {
+    return node.checkpoint === true;
+  }
+
+  protected override async waitForCheckpoint(nodeId: string): Promise<boolean> {
+    const skill = ARIS_SKILLS.find((s) => s.id === this.nodes.find((n) => n.id === nodeId)?.skillId);
+    // Notify about checkpoint
+    this.sendNotify?.("checkpoint", skill?.name ?? nodeId, "Approval required to continue pipeline").catch(() => {});
+    return super.waitForCheckpoint(nodeId);
   }
 
   protected async executeNode(node: PipelineNode): Promise<void> {
@@ -83,6 +106,9 @@ export class PipelineExecutor extends BaseExecutor<PipelineNode, PipelineEdge> {
 
     if (sessionId) this.currentSessionIds.delete(sessionId);
     this.emit({ type: "log", nodeId: node.id, message: `Completed: ${skill.name}` });
+
+    // Send notification on node completion
+    this.sendNotify?.("node-done", skill.name, `Stage "${skill.name}" completed successfully`).catch(() => {});
   }
 
   private async waitForCompletion(

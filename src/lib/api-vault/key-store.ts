@@ -20,6 +20,8 @@ export interface ApiKeyRecord {
   provider: string;
   name: string;
   key_masked: string;
+  base_url: string;
+  is_active: number;
   created_at: string;
   updated_at: string;
   last_used_at: string | null;
@@ -32,6 +34,7 @@ export interface ApiKeyInput {
   provider: string;
   name: string;
   key: string;
+  base_url?: string;
   monthly_budget?: number | null;
   notes?: string;
 }
@@ -39,12 +42,21 @@ export interface ApiKeyInput {
 // ---- Known providers ----
 
 export const PROVIDERS = [
-  { id: "anthropic", name: "Anthropic", prefix: "sk-ant-" },
-  { id: "openai", name: "OpenAI", prefix: "sk-" },
-  { id: "google", name: "Google AI", prefix: "AI" },
-  { id: "mistral", name: "Mistral", prefix: "" },
-  { id: "cohere", name: "Cohere", prefix: "" },
-  { id: "other", name: "Other", prefix: "" },
+  { id: "anthropic", name: "Anthropic", prefix: "sk-ant-", defaultBaseUrl: "https://api.anthropic.com" },
+  { id: "openai", name: "OpenAI", prefix: "sk-", defaultBaseUrl: "https://api.openai.com" },
+  { id: "deepseek", name: "DeepSeek", prefix: "sk-", defaultBaseUrl: "https://api.deepseek.com" },
+  { id: "siliconflow", name: "SiliconFlow", prefix: "sk-", defaultBaseUrl: "https://api.siliconflow.cn" },
+  { id: "moonshot", name: "Moonshot", prefix: "sk-", defaultBaseUrl: "https://api.moonshot.cn" },
+  { id: "zhipu", name: "Zhipu AI", prefix: "", defaultBaseUrl: "https://open.bigmodel.cn" },
+  { id: "openrouter", name: "OpenRouter", prefix: "sk-or-", defaultBaseUrl: "https://openrouter.ai/api" },
+  { id: "groq", name: "Groq", prefix: "gsk_", defaultBaseUrl: "https://api.groq.com/openai" },
+  { id: "together", name: "Together AI", prefix: "", defaultBaseUrl: "https://api.together.xyz" },
+  { id: "google", name: "Google AI", prefix: "AI", defaultBaseUrl: "https://generativelanguage.googleapis.com" },
+  { id: "mistral", name: "Mistral", prefix: "", defaultBaseUrl: "https://api.mistral.ai" },
+  { id: "cohere", name: "Cohere", prefix: "", defaultBaseUrl: "https://api.cohere.com" },
+  { id: "volcengine", name: "Volcengine (火山引擎)", prefix: "", defaultBaseUrl: "https://ark.cn-beijing.volces.com/api" },
+  { id: "baidu", name: "Baidu (百度千帆)", prefix: "", defaultBaseUrl: "https://aip.baidubce.com" },
+  { id: "custom", name: "Custom / OpenAI Compatible", prefix: "", defaultBaseUrl: "" },
 ] as const;
 
 // ---- Obfuscation ----
@@ -83,10 +95,22 @@ function maskKey(key: string): string {
 
 const DB_PATH = path.join(os.homedir(), ".claude", "scc-dashboard.db");
 
-let _db: Database.Database | null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const _global = globalThis as any;
+const DB_SYMBOL = Symbol.for("scc-api-vault-db");
+const DB_VERSION_KEY = Symbol.for("scc-api-vault-db-version");
+const CURRENT_DB_VERSION = 2;
+
+function getStoredDb(): Database.Database | null { return _global[DB_SYMBOL] ?? null; }
+function setStoredDb(db: Database.Database) { _global[DB_SYMBOL] = db; }
+function getStoredVersion(): number { return _global[DB_VERSION_KEY] ?? 0; }
+function setStoredVersion(v: number) { _global[DB_VERSION_KEY] = v; }
+
+let _db: Database.Database | null = getStoredDb();
+let _dbVersion = getStoredVersion();
 
 function getDb(): Database.Database {
-  if (!_db) {
+  if (!_db || _dbVersion < CURRENT_DB_VERSION) {
     _db = new Database(DB_PATH);
     _db.pragma("journal_mode = WAL");
     _db.exec(`
@@ -101,9 +125,33 @@ function getDb(): Database.Database {
         last_used_at TEXT,
         usage_count INTEGER DEFAULT 0,
         monthly_budget REAL,
-        notes TEXT DEFAULT ''
+        notes TEXT DEFAULT '',
+        base_url TEXT DEFAULT '',
+        is_active INTEGER DEFAULT 1
       )
     `);
+
+    // Migration: add new columns if they don't exist (for existing databases)
+    try { _db.exec("ALTER TABLE api_keys ADD COLUMN base_url TEXT DEFAULT ''"); } catch {}
+    try { _db.exec("ALTER TABLE api_keys ADD COLUMN is_active INTEGER DEFAULT 1"); } catch {}
+
+    // Usage snapshots table — records balance at each check for historical tracking
+    _db.exec(`
+      CREATE TABLE IF NOT EXISTS usage_snapshots (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        key_id TEXT NOT NULL,
+        balance REAL,
+        used REAL,
+        currency TEXT DEFAULT 'USD',
+        checked_at TEXT DEFAULT (datetime('now')),
+        FOREIGN KEY (key_id) REFERENCES api_keys(id) ON DELETE CASCADE
+      )
+    `);
+    _db.exec(`CREATE INDEX IF NOT EXISTS idx_snapshots_key_date ON usage_snapshots(key_id, checked_at)`);
+
+    _dbVersion = CURRENT_DB_VERSION;
+    setStoredDb(_db);
+    setStoredVersion(_dbVersion);
   }
   return _db;
 }
@@ -113,8 +161,8 @@ function getDb(): Database.Database {
 export function listKeys(): ApiKeyRecord[] {
   const db = getDb();
   const rows = db.prepare(
-    `SELECT id, provider, name, key_masked, created_at, updated_at,
-            last_used_at, usage_count, monthly_budget, notes
+    `SELECT id, provider, name, key_masked, base_url, is_active,
+            created_at, updated_at, last_used_at, usage_count, monthly_budget, notes
      FROM api_keys ORDER BY created_at DESC`
   ).all();
   return rows as ApiKeyRecord[];
@@ -123,8 +171,8 @@ export function listKeys(): ApiKeyRecord[] {
 export function getKey(id: string): ApiKeyRecord | undefined {
   const db = getDb();
   return db.prepare(
-    `SELECT id, provider, name, key_masked, created_at, updated_at,
-            last_used_at, usage_count, monthly_budget, notes
+    `SELECT id, provider, name, key_masked, base_url, is_active,
+            created_at, updated_at, last_used_at, usage_count, monthly_budget, notes
      FROM api_keys WHERE id = ?`
   ).get(id) as ApiKeyRecord | undefined;
 }
@@ -145,14 +193,15 @@ export function addKey(input: ApiKeyInput): ApiKeyRecord {
   const masked = maskKey(input.key);
 
   db.prepare(
-    `INSERT INTO api_keys (id, provider, name, key_encrypted, key_masked, monthly_budget, notes)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO api_keys (id, provider, name, key_encrypted, key_masked, base_url, monthly_budget, notes)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(
     id,
     input.provider,
     input.name,
     encrypted,
     masked,
+    input.base_url ?? "",
     input.monthly_budget ?? null,
     input.notes ?? ""
   );
@@ -162,7 +211,14 @@ export function addKey(input: ApiKeyInput): ApiKeyRecord {
 
 export function updateKey(
   id: string,
-  updates: { name?: string; key?: string; monthly_budget?: number | null; notes?: string }
+  updates: {
+    name?: string;
+    key?: string;
+    base_url?: string;
+    is_active?: number;
+    monthly_budget?: number | null;
+    notes?: string;
+  }
 ): ApiKeyRecord | null {
   const db = getDb();
   const existing = getKey(id);
@@ -179,6 +235,14 @@ export function updateKey(
     sets.push("key_encrypted = ?", "key_masked = ?");
     params.push(obfuscate(updates.key), maskKey(updates.key));
   }
+  if (updates.base_url !== undefined) {
+    sets.push("base_url = ?");
+    params.push(updates.base_url);
+  }
+  if (updates.is_active !== undefined) {
+    sets.push("is_active = ?");
+    params.push(updates.is_active);
+  }
   if (updates.monthly_budget !== undefined) {
     sets.push("monthly_budget = ?");
     params.push(updates.monthly_budget);
@@ -194,6 +258,10 @@ export function updateKey(
   return getKey(id)!;
 }
 
+export function toggleKeyActive(id: string, active: boolean): ApiKeyRecord | null {
+  return updateKey(id, { is_active: active ? 1 : 0 });
+}
+
 export function deleteKey(id: string): boolean {
   const db = getDb();
   const result = db.prepare("DELETE FROM api_keys WHERE id = ?").run(id);
@@ -205,4 +273,81 @@ export function recordKeyUsage(id: string): void {
   db.prepare(
     `UPDATE api_keys SET usage_count = usage_count + 1, last_used_at = datetime('now') WHERE id = ?`
   ).run(id);
+}
+
+// ---- Usage Snapshots ----
+
+export interface UsageSnapshot {
+  id: number;
+  key_id: string;
+  balance: number | null;
+  used: number | null;
+  currency: string;
+  checked_at: string;
+}
+
+/** Record a balance/usage snapshot for a key */
+export function addSnapshot(keyId: string, balance: number | null, used: number | null, currency: string = "USD"): void {
+  const db = getDb();
+  db.prepare(
+    `INSERT INTO usage_snapshots (key_id, balance, used, currency) VALUES (?, ?, ?, ?)`
+  ).run(keyId, balance, used, currency);
+}
+
+/** Get snapshots for a key within a date range */
+export function getSnapshots(keyId: string, days: number = 30): UsageSnapshot[] {
+  const db = getDb();
+  return db.prepare(
+    `SELECT id, key_id, balance, used, currency, checked_at
+     FROM usage_snapshots
+     WHERE key_id = ? AND checked_at >= datetime('now', ?)
+     ORDER BY checked_at ASC`
+  ).all(keyId, `-${days} days`) as UsageSnapshot[];
+}
+
+/** Get daily aggregated snapshots (one per day, latest balance of each day) */
+export function getDailySnapshots(keyId: string, days: number = 30): { date: string; balance: number | null; used: number | null; currency: string }[] {
+  const db = getDb();
+  // Use a window function approach: for each day, pick the row with the latest checked_at
+  return db.prepare(
+    `SELECT date(checked_at) as date, balance, used, currency
+     FROM usage_snapshots
+     WHERE key_id = ? AND checked_at >= datetime('now', ?)
+     GROUP BY date(checked_at)
+     HAVING checked_at = MAX(checked_at)
+     ORDER BY date(checked_at) ASC`
+  ).all(keyId, `-${days} days`) as { date: string; balance: number | null; used: number | null; currency: string }[];
+}
+
+/** Get daily aggregated snapshots across all keys */
+export function getAllKeysDailySnapshots(days: number = 30): { date: string; total_balance: number; total_used: number }[] {
+  const db = getDb();
+  // For each key+day, pick the latest snapshot, then aggregate across keys per day
+  return db.prepare(
+    `SELECT day as date, SUM(balance) as total_balance, SUM(used) as total_used
+     FROM (
+       SELECT key_id, date(checked_at) as day, balance, used
+       FROM usage_snapshots
+       WHERE checked_at >= datetime('now', ?)
+       GROUP BY key_id, date(checked_at)
+       HAVING checked_at = MAX(checked_at)
+     )
+     GROUP BY day
+     ORDER BY day ASC`
+  ).all(`-${days} days`) as { date: string; total_balance: number; total_used: number }[];
+}
+
+/** Clean up old snapshots (keep last N days) */
+export function cleanOldSnapshots(keepDays: number = 90): void {
+  const db = getDb();
+  db.prepare(
+    `DELETE FROM usage_snapshots WHERE checked_at < datetime('now', ?)`
+  ).run(`-${keepDays} days`);
+}
+
+export function autoDetectProvider(key: string): string {
+  for (const p of PROVIDERS) {
+    if (p.prefix && key.startsWith(p.prefix)) return p.id;
+  }
+  return "custom";
 }

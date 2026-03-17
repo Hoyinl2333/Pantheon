@@ -33,6 +33,8 @@ import { DecisionNode } from "./decision-node";
 import { AggregatorNode } from "./aggregator-node";
 import { MemberPalette } from "./member-palette";
 import { ExecutionPanel, type ExecutionNodeStatus } from "./execution-panel";
+import { TeamExecutor, type TeamExecutorOptions } from "../lib/team-executor";
+import type { ExecutionEvent } from "@/lib/execution";
 
 // ---- Node types (OUTSIDE component for React Flow perf) ----
 const nodeTypes = {
@@ -178,8 +180,11 @@ function TeamCanvasInner({ team, onTeamUpdate, locale }: TeamCanvasInnerProps) {
   const [nodeStatuses, setNodeStatuses] = useState<ExecutionNodeStatus[]>([]);
   const [totalTokens, setTotalTokens] = useState(0);
   const [elapsedMs, setElapsedMs] = useState(0);
+  const [promptInput, setPromptInput] = useState("");
+  const [showPromptInput, setShowPromptInput] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<number>(0);
+  const executorRef = useRef<TeamExecutor | null>(null);
 
   // Initialize from team
   useEffect(() => {
@@ -333,8 +338,10 @@ function TeamCanvasInner({ team, onTeamUpdate, locale }: TeamCanvasInnerProps) {
     onTeamUpdate(updatedTeam);
   }, [nodes, team, onTeamUpdate]);
 
-  // ---- Execution (mock) ----
-  const handleRun = useCallback(() => {
+  // ---- Execution ----
+  const handleRunWithPrompt = useCallback((prompt: string) => {
+    if (!prompt.trim()) return;
+    setShowPromptInput(false);
     setIsRunning(true);
     setExecutionLogs([]);
     setTotalTokens(0);
@@ -360,56 +367,63 @@ function TeamCanvasInner({ team, onTeamUpdate, locale }: TeamCanvasInnerProps) {
       setElapsedMs(Date.now() - startTimeRef.current);
     }, 500);
 
-    // Mock sequential execution
-    const runSequential = async () => {
-      for (let i = 0; i < agentNodes.length; i++) {
-        const node = agentNodes[i];
-        const name = (node.data as AgentNodeData).name ?? "Agent";
+    // Build edges from current canvas
+    const canvasEdges = edges
+      .filter((e) => {
+        const src = nodes.find((n) => n.id === e.source);
+        const tgt = nodes.find((n) => n.id === e.target);
+        return src?.type === "agent" && tgt?.type === "agent";
+      })
+      .map((e) => ({ id: e.id, source: e.source, target: e.target }));
 
-        // Set running
+    // Create execution listener
+    const listener = (event: ExecutionEvent) => {
+      if (event.type === "node-status" && event.nodeId && event.status) {
+        const status = event.status as AgentNodeStatus;
         setNodes((nds) => nds.map((n) =>
-          n.id === node.id ? { ...n, data: { ...n.data, status: "running" } } : n
+          n.id === event.nodeId ? { ...n, data: { ...n.data, status } } : n
         ));
         setEdges((eds) => eds.map((e) =>
-          e.source === node.id || e.target === node.id
-            ? { ...e, animated: true }
+          e.source === event.nodeId || e.target === event.nodeId
+            ? { ...e, animated: status === "running" }
             : e
         ));
         setNodeStatuses((prev) => prev.map((ns) =>
-          ns.nodeId === node.id ? { ...ns, status: "running" as AgentNodeStatus } : ns
+          ns.nodeId === event.nodeId ? { ...ns, status } : ns
         ));
-        setExecutionLogs((prev) => [...prev, `[${new Date().toLocaleTimeString()}] Starting: ${name}`]);
-
-        // Simulate work
-        await new Promise((r) => setTimeout(r, 1200 + Math.random() * 800));
-
-        const tokens = Math.floor(500 + Math.random() * 2000);
-        setTotalTokens((prev) => prev + tokens);
-
-        // Set done
-        setNodes((nds) => nds.map((n) =>
-          n.id === node.id ? { ...n, data: { ...n.data, status: "done", tokens } } : n
-        ));
-        setEdges((eds) => eds.map((e) =>
-          e.source === node.id || e.target === node.id
-            ? { ...e, animated: false }
-            : e
-        ));
-        setNodeStatuses((prev) => prev.map((ns) =>
-          ns.nodeId === node.id ? { ...ns, status: "done" as AgentNodeStatus, tokens } : ns
-        ));
-        setExecutionLogs((prev) => [...prev, `[${new Date().toLocaleTimeString()}] Done: ${name} (${tokens} tokens)`]);
       }
-
-      setExecutionLogs((prev) => [...prev, `\n=== Completed all agents ===`]);
-      setIsRunning(false);
-      if (timerRef.current) clearInterval(timerRef.current);
+      if (event.type === "log" && event.message) {
+        setExecutionLogs((prev) => [
+          ...prev.slice(-200),
+          `[${new Date().toLocaleTimeString()}] ${event.message}`,
+        ]);
+      }
+      if (event.type === "pipeline-done" || event.type === "pipeline-error") {
+        setIsRunning(false);
+        if (timerRef.current) clearInterval(timerRef.current);
+        setExecutionLogs((prev) => [...prev, `\n=== ${event.message} ===`]);
+      }
     };
 
-    runSequential();
-  }, [nodes, setNodes, setEdges]);
+    const executor = new TeamExecutor(team, canvasEdges, listener, {
+      prompt,
+      team,
+      edges: canvasEdges,
+      maxParallel: team.workflow === "parallel" ? agentNodes.length : 1,
+    });
+    executorRef.current = executor;
+
+    executor.runPipeline().then((run) => {
+      setTotalTokens(run.totalTokens ?? 0);
+    });
+  }, [nodes, edges, team, setNodes, setEdges]);
+
+  const handleRun = useCallback(() => {
+    setShowPromptInput(true);
+  }, []);
 
   const handleStop = useCallback(() => {
+    executorRef.current?.abort();
     setIsRunning(false);
     if (timerRef.current) clearInterval(timerRef.current);
     setExecutionLogs((prev) => [...prev, `\n=== Execution stopped ===`]);
@@ -550,6 +564,51 @@ function TeamCanvasInner({ team, onTeamUpdate, locale }: TeamCanvasInnerProps) {
           </ReactFlow>
         </div>
       </div>
+
+      {/* Prompt input bar */}
+      {showPromptInput && (
+        <div className="border-t bg-background px-4 py-3">
+          <div className="flex items-center gap-2">
+            <input
+              className="flex-1 h-8 px-3 rounded-md border border-input bg-background text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              placeholder={isZh ? "输入任务指令给 Agent 团队..." : "Enter the task prompt for the agent team..."}
+              value={promptInput}
+              onChange={(e) => setPromptInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && promptInput.trim()) {
+                  handleRunWithPrompt(promptInput);
+                }
+                if (e.key === "Escape") {
+                  setShowPromptInput(false);
+                }
+              }}
+              autoFocus
+            />
+            <Button
+              size="sm"
+              className="h-8 px-3"
+              onClick={() => handleRunWithPrompt(promptInput)}
+              disabled={!promptInput.trim()}
+            >
+              <Play className="h-3.5 w-3.5 mr-1" />
+              {isZh ? "执行" : "Execute"}
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-8 px-2"
+              onClick={() => setShowPromptInput(false)}
+            >
+              {isZh ? "取消" : "Cancel"}
+            </Button>
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-1">
+            {isZh
+              ? `${team.workflow === "parallel" ? "并行" : team.workflow === "hierarchical" ? "层级" : "顺序"}执行 ${nodes.filter((n) => n.type === "agent").length} 个 Agent`
+              : `${team.workflow} execution with ${nodes.filter((n) => n.type === "agent").length} agents`}
+          </p>
+        </div>
+      )}
 
       {/* Execution panel */}
       <ExecutionPanel

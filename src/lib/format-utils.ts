@@ -40,11 +40,18 @@ export function shortModel(m?: string): string {
   if (m.includes("sonnet")) return "Sonnet";
   if (m.includes("haiku")) return "Haiku";
   // Codex / OpenAI models
-  if (m.includes("gpt-5.2")) return "GPT-5.2";
   if (m.includes("gpt-5.3")) return "GPT-5.3";
+  if (m.includes("gpt-5.2")) return "GPT-5.2";
+  if (m === "gpt-4.1-nano") return "GPT-4.1N";
+  if (m === "gpt-4.1-mini") return "GPT-4.1m";
   if (m.includes("gpt-4.1")) return "GPT-4.1";
+  if (m === "gpt-4o-mini") return "4o-Mini";
+  if (m.includes("gpt-4o")) return "GPT-4o";
   if (m === "o3-pro") return "o3-Pro";
   if (m === "o3") return "o3";
   if (m === "o4-mini") return "o4-Mini";
+  if (m === "o1-mini") return "o1-Mini";
+  if (m === "o1") return "o1";
+  if (m.includes("codex-mini")) return "Codex-Mini";
   return m;
 }

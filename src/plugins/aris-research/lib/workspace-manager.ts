@@ -228,9 +228,18 @@ export async function getWorkspace(
   return workspaces.find((w) => w.pipelineId === pipelineId) ?? null;
 }
 
-/** List all workspaces, sorted by most recent first. */
+/** List all workspaces, sorted by most recent first.
+ *  Automatically prunes entries whose directories no longer exist on disk. */
 export async function listWorkspaces(): Promise<ArisWorkspace[]> {
-  return readIndex();
+  const all = readIndex();
+  const existing = all.filter((w) => fs.existsSync(w.path));
+
+  // If some entries were pruned, persist the cleaned index
+  if (existing.length < all.length) {
+    writeIndex(existing);
+  }
+
+  return existing;
 }
 
 /** Update workspace fields (stage status, name, etc.). */
@@ -270,6 +279,16 @@ export async function updateWorkspace(
 /** Archive a workspace (mark as archived in index). */
 export async function archiveWorkspace(id: string): Promise<void> {
   await updateWorkspace(id, { status: "archived" });
+}
+
+/** Remove a workspace from the index entirely (does NOT delete files on disk). */
+export async function removeWorkspace(id: string): Promise<void> {
+  const workspaces = readIndex();
+  const filtered = workspaces.filter((w) => w.id !== id);
+  if (filtered.length === workspaces.length) {
+    throw new Error(`Workspace not found: ${id}`);
+  }
+  writeIndex(filtered);
 }
 
 /**

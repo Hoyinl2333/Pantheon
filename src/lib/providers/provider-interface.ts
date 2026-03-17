@@ -53,6 +53,8 @@ export interface CliProvider {
     binary: string;
     args: string[];
     env: Record<string, string | undefined>;
+    /** If set, write this to stdin instead of passing prompt as CLI arg (avoids shell escaping) */
+    stdinPrompt?: string;
   };
 
   /**

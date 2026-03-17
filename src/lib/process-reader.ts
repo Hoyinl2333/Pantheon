@@ -2,8 +2,11 @@
  * Process Reader - detect active Claude CLI processes
  */
 
-import { execSync } from "child_process";
+import { exec } from "child_process";
+import { promisify } from "util";
 import os from "os";
+
+const execAsync = promisify(exec);
 
 export interface ProcessInfo {
   pid: number;
@@ -13,14 +16,14 @@ export interface ProcessInfo {
   command?: string;
 }
 
-export function getClaudeProcesses(): ProcessInfo[] {
+export async function getClaudeProcesses(): Promise<ProcessInfo[]> {
   const platform = os.platform();
   const processes: ProcessInfo[] = [];
 
   try {
     if (platform === "win32") {
       // Windows: use tasklist + wmic for more details
-      const output = execSync(
+      const { stdout: output } = await execAsync(
         'tasklist /FI "IMAGENAME eq claude.exe" /FO CSV /NH 2>NUL & tasklist /FI "IMAGENAME eq claude-agent.exe" /FO CSV /NH 2>NUL',
         { encoding: "utf-8", timeout: 5000 }
       );
@@ -49,7 +52,7 @@ export function getClaudeProcesses(): ProcessInfo[] {
 
       // Also check for node processes running Claude
       try {
-        const wmicOutput = execSync(
+        const { stdout: wmicOutput } = await execAsync(
           'wmic process where "name=\'node.exe\'" get ProcessId,CommandLine,WorkingSetSize /FORMAT:CSV 2>NUL',
           { encoding: "utf-8", timeout: 5000 }
         );
@@ -77,7 +80,7 @@ export function getClaudeProcesses(): ProcessInfo[] {
       } catch { /* skip wmic errors */ }
     } else {
       // Unix: ps aux | grep claude
-      const output = execSync(
+      const { stdout: output } = await execAsync(
         "ps aux | grep -i claude | grep -v grep",
         { encoding: "utf-8", timeout: 5000 }
       );

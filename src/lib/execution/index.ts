@@ -13,3 +13,6 @@ export type {
   BaseExecutorOptions,
   CheckpointCallback,
 } from "./base-executor";
+
+export { notify, createPipelineNotifier } from "./notifier";
+export type { NotifierConfig, NotifyChannel, NotifyEventType } from "./notifier";

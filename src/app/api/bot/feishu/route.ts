@@ -40,6 +40,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ challenge: body.challenge });
     }
 
+    // Support direct message sending (for pipeline notifications)
+    if (body.action === "send" && body.chatId && body.text) {
+      await bot.sendMessage(body.chatId, {
+        text: body.text,
+        parseMode: "plain",
+      });
+      return NextResponse.json({ ok: true, sent: true });
+    }
+
     await bot.handleWebhook(body);
     return NextResponse.json({ ok: true });
   } catch (err) {

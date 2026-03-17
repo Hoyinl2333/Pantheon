@@ -11,6 +11,7 @@ import {
   Trash2, HardDrive,
 } from "lucide-react";
 import { useToast } from "@/components/toast";
+import { useTranslations } from "next-intl";
 
 interface ProjectOption {
   encoded: string;
@@ -29,6 +30,8 @@ interface BrowseEntry {
 type CreateTab = "projects" | "browse" | "custom";
 
 export default function EditorPage() {
+  const t = useTranslations("editor");
+  const tc = useTranslations("common");
   const [files, setFiles] = useState<ClaudeMdFile[]>([]);
   const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
@@ -99,14 +102,14 @@ export default function EditorPage() {
         setOriginalContent(content);
         setSaveStatus("saved");
         setTimeout(() => setSaveStatus("idle"), 2000);
-        toast("File saved successfully");
+        toast(t("savedSuccess"));
       } else {
         setSaveStatus("error");
-        toast("Failed to save file", "error");
+        toast(t("saveFailed"), "error");
       }
     } catch {
       setSaveStatus("error");
-      toast("Failed to save file", "error");
+      toast(t("saveFailed"), "error");
     }
     finally { setSaving(false); }
   }, [selectedFile, content, toast]);
@@ -133,7 +136,7 @@ export default function EditorPage() {
         setOriginalContent("");
       }
     } catch {
-      toast("Failed to delete file", "error");
+      toast(t("deleteFailed"), "error");
     } finally { setDeleting(false); }
   };
 
@@ -184,9 +187,9 @@ export default function EditorPage() {
       if (res.ok && data.path) {
         await afterCreate(data.path);
       } else {
-        setCreateError(data.error || "Failed to create");
+        setCreateError(data.error || t("createFailed"));
       }
-    } catch { setCreateError("Network error"); }
+    } catch { setCreateError(t("networkError")); }
     finally { setCreating(false); }
   };
 
@@ -205,9 +208,9 @@ export default function EditorPage() {
       if (res.ok && data.path) {
         await afterCreate(data.path);
       } else {
-        setCreateError(data.error || "Failed to create");
+        setCreateError(data.error || t("createFailed"));
       }
-    } catch { setCreateError("Network error"); }
+    } catch { setCreateError(t("networkError")); }
     finally { setCreating(false); }
   };
 
@@ -268,7 +271,7 @@ export default function EditorPage() {
   if (loading && files.length === 0) {
     return (
       <div className="flex items-center justify-center h-full">
-        <p className="text-muted-foreground">Loading...</p>
+        <p className="text-muted-foreground">{tc("loading")}</p>
       </div>
     );
   }
@@ -280,9 +283,9 @@ export default function EditorPage() {
     <div className="h-full flex flex-col">
       {/* Header */}
       <div className="mb-4">
-        <h1 className="text-2xl font-bold mb-2">Instructions Editor</h1>
+        <h1 className="text-2xl font-bold mb-2">{t("title")}</h1>
         <p className="text-sm text-muted-foreground mb-4">
-          Edit CLAUDE.md and AGENTS.md instruction files
+          {t("subtitle")}
         </p>
 
         <div className="flex items-center gap-3">
@@ -291,7 +294,7 @@ export default function EditorPage() {
             onChange={(e) => setSelectedFile(e.target.value)}
             className="px-3 py-2 border rounded-md bg-background text-sm cursor-pointer"
           >
-            {files.length === 0 && <option value="">No instruction files found</option>}
+            {files.length === 0 && <option value="">{t("noFiles")}</option>}
             {files.map((file) => (
               <option key={file.path} value={file.path}>{file.label}</option>
             ))}
@@ -305,7 +308,7 @@ export default function EditorPage() {
               onClick={() => { setShowCreateDialog(!showCreateDialog); setCreateError(""); }}
             >
               <Plus className="h-4 w-4 mr-1" />
-              Create
+              {t("create")}
             </Button>
 
             {/* Create dialog */}
@@ -318,7 +321,7 @@ export default function EditorPage() {
                 <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/30">
                   <span className="text-sm font-medium flex items-center gap-1.5">
                     <FolderPlus className="h-4 w-4" />
-                    Create
+                    {t("create")}
                   </span>
                   <div className="flex items-center gap-2">
                     <select
@@ -338,9 +341,9 @@ export default function EditorPage() {
                 {/* Tabs */}
                 <div className="flex border-b">
                   {([
-                    { key: "projects" as const, label: "Projects" },
-                    { key: "browse" as const, label: "Browse" },
-                    { key: "custom" as const, label: "Custom Path" },
+                    { key: "projects" as const, label: t("createDialog.projects") },
+                    { key: "browse" as const, label: t("createDialog.browse") },
+                    { key: "custom" as const, label: t("createDialog.customPath") },
                   ]).map((tab) => (
                     <button
                       key={tab.key}
@@ -370,7 +373,7 @@ export default function EditorPage() {
                   {createTab === "projects" && (
                     creatableProjects.length === 0 ? (
                       <div className="px-3 py-4 text-sm text-muted-foreground text-center">
-                        All projects already have {createFileName}
+                        {t("createDialog.allProjectsHave", { fileName: createFileName })}
                       </div>
                     ) : (
                       creatableProjects.map((project) => (
@@ -382,7 +385,7 @@ export default function EditorPage() {
                         >
                           <FolderPlus className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                           <span className="truncate">{project.decoded}</span>
-                          <Badge variant="outline" className="ml-auto text-xs flex-shrink-0">New</Badge>
+                          <Badge variant="outline" className="ml-auto text-xs flex-shrink-0">{t("createDialog.new")}</Badge>
                         </button>
                       ))
                     )
@@ -402,7 +405,7 @@ export default function EditorPage() {
                         {browseHasClaudeMd && (
                           <Badge variant="secondary" className="text-xs flex-shrink-0">
                             <FileText className="h-3 w-3 mr-1" />
-                            Exists
+                            {t("createDialog.exists")}
                           </Badge>
                         )}
                       </div>
@@ -423,7 +426,7 @@ export default function EditorPage() {
                               className="flex-1 text-xs"
                             >
                               <FileText className="h-3.5 w-3.5 mr-1" />
-                              Open existing
+                              {t("createDialog.openExisting")}
                             </Button>
                           ) : (
                             <Button
@@ -434,7 +437,7 @@ export default function EditorPage() {
                               className="flex-1 text-xs"
                             >
                               <FolderPlus className="h-3.5 w-3.5 mr-1" />
-                              Create here
+                              {t("createDialog.createHere")}
                             </Button>
                           )}
                           {browseParent ? (
@@ -446,7 +449,7 @@ export default function EditorPage() {
                               className="text-xs"
                             >
                               <ArrowUp className="h-3.5 w-3.5 mr-1" />
-                              Up
+                              {t("createDialog.up")}
                             </Button>
                           ) : (
                             <Button
@@ -457,7 +460,7 @@ export default function EditorPage() {
                               className="text-xs"
                             >
                               <HardDrive className="h-3.5 w-3.5 mr-1" />
-                              Drives
+                              {t("createDialog.drives")}
                             </Button>
                           )}
                         </div>
@@ -465,9 +468,9 @@ export default function EditorPage() {
 
                       {/* Directory listing */}
                       {browseLoading ? (
-                        <div className="px-3 py-4 text-sm text-muted-foreground text-center">Loading...</div>
+                        <div className="px-3 py-4 text-sm text-muted-foreground text-center">{tc("loading")}</div>
                       ) : browseEntries.length === 0 ? (
-                        <div className="px-3 py-4 text-sm text-muted-foreground text-center">No subdirectories</div>
+                        <div className="px-3 py-4 text-sm text-muted-foreground text-center">{t("createDialog.noSubdirectories")}</div>
                       ) : (
                         browseEntries.map((entry) => (
                           <button
@@ -500,7 +503,7 @@ export default function EditorPage() {
                     <div className="p-3 space-y-3">
                       <div>
                         <label className="text-xs text-muted-foreground mb-1 block">
-                          Directory path ({createFileName} will be created inside):
+                          {t("createDialog.directoryPath", { fileName: createFileName })}
                         </label>
                         <input
                           type="text"
@@ -509,7 +512,7 @@ export default function EditorPage() {
                           onKeyDown={(e) => {
                             if (e.key === "Enter") handleCreateAtPath(customPath);
                           }}
-                          placeholder="E:\my-project or /home/user/project"
+                          placeholder={t("createDialog.pathPlaceholder")}
                           className="w-full px-3 py-2 border rounded-md bg-background text-sm font-mono"
                           autoFocus
                         />
@@ -521,7 +524,7 @@ export default function EditorPage() {
                         className="w-full"
                       >
                         <FolderPlus className="h-4 w-4 mr-1" />
-                        {creating ? "Creating..." : `Create ${createFileName}`}
+                        {creating ? t("creating") : t("createDialog.createFile", { fileName: createFileName })}
                       </Button>
                     </div>
                   )}
@@ -547,17 +550,17 @@ export default function EditorPage() {
                 {showDeleteConfirm && (
                   <div className="absolute right-0 top-full mt-1 w-64 bg-popover border rounded-lg shadow-lg z-50 p-3">
                     <p className="text-sm mb-2">
-                      Delete <strong>{selectedFileObj.label}</strong>?
+                      {t("deleteConfirmTitle")} <strong>{selectedFileObj.label}</strong>?
                     </p>
                     <p className="text-xs text-muted-foreground mb-3">
-                      This will permanently delete the file.
+                      {t("deleteConfirmMsg")}
                     </p>
                     <div className="flex gap-2 justify-end">
                       <Button size="sm" variant="outline" onClick={() => setShowDeleteConfirm(false)}>
-                        Cancel
+                        {tc("cancel")}
                       </Button>
                       <Button size="sm" variant="destructive" onClick={handleDelete} disabled={deleting}>
-                        {deleting ? "Deleting..." : "Delete"}
+                        {deleting ? t("deleting") : t("deleteConfirmTitle")}
                       </Button>
                     </div>
                   </div>
@@ -569,10 +572,10 @@ export default function EditorPage() {
       </div>
 
       {/* Editor + Preview */}
-      <div className="flex-1 grid grid-cols-2 gap-4 overflow-hidden">
+      <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 overflow-hidden">
         <div className="flex flex-col border rounded-md overflow-hidden">
           <div className="bg-muted/30 px-3 py-2 border-b">
-            <h2 className="text-sm font-medium">Editor</h2>
+            <h2 className="text-sm font-medium">{t("editor")}</h2>
           </div>
           <textarea
             value={content}
@@ -584,7 +587,7 @@ export default function EditorPage() {
 
         <div className="flex flex-col border rounded-md overflow-hidden">
           <div className="bg-muted/30 px-3 py-2 border-b">
-            <h2 className="text-sm font-medium">Preview</h2>
+            <h2 className="text-sm font-medium">{t("preview")}</h2>
           </div>
           <div className="flex-1 overflow-auto p-4">
             <MarkdownContent content={content} />
@@ -597,23 +600,23 @@ export default function EditorPage() {
         <div className="flex items-center gap-2 text-sm">
           {hasChanges && (
             <span className="text-amber-600 flex items-center gap-1">
-              <AlertCircle className="h-4 w-4" />Unsaved changes
+              <AlertCircle className="h-4 w-4" />{t("unsavedChanges")}
             </span>
           )}
           {saveStatus === "saved" && (
             <span className="text-green-600 flex items-center gap-1">
-              <Check className="h-4 w-4" />Saved successfully
+              <Check className="h-4 w-4" />{t("savedSuccess")}
             </span>
           )}
           {saveStatus === "error" && (
             <span className="text-red-600 flex items-center gap-1">
-              <AlertCircle className="h-4 w-4" />Save failed
+              <AlertCircle className="h-4 w-4" />{t("saveFailed")}
             </span>
           )}
         </div>
         <Button onClick={handleSave} disabled={!hasChanges || saving}>
           <Save className="h-4 w-4 mr-2" />
-          {saving ? "Saving..." : "Save (Ctrl+S)"}
+          {saving ? t("saving") : t("saveCtrlS")}
         </Button>
       </div>
     </div>

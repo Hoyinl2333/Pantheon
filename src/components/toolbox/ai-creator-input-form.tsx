@@ -1,0 +1,203 @@
+"use client";
+
+import { RefObject } from "react";
+import { CreatorType, TYPE_CONFIG, getPlaceholder } from "./ai-creator-types";
+
+interface AiCreatorInputFormProps {
+  type: CreatorType;
+  setType: (t: CreatorType) => void;
+  description: string;
+  setDescription: (v: string) => void;
+  name: string;
+  setName: (v: string) => void;
+  ruleGroup: string;
+  setRuleGroup: (v: string) => void;
+  hookType: string;
+  setHookType: (v: string) => void;
+  hookCommand: string;
+  setHookCommand: (v: string) => void;
+  hookMatcher: string;
+  setHookMatcher: (v: string) => void;
+  hookTimeout: string;
+  setHookTimeout: (v: string) => void;
+  hookDescription: string;
+  setHookDescription: (v: string) => void;
+  textareaRef: RefObject<HTMLTextAreaElement | null>;
+}
+
+export function AiCreatorInputForm({
+  type,
+  setType,
+  description,
+  setDescription,
+  name,
+  setName,
+  ruleGroup,
+  setRuleGroup,
+  hookType,
+  setHookType,
+  hookCommand,
+  setHookCommand,
+  hookMatcher,
+  setHookMatcher,
+  hookTimeout,
+  setHookTimeout,
+  hookDescription,
+  setHookDescription,
+  textareaRef,
+}: AiCreatorInputFormProps) {
+  return (
+    <>
+      {/* Type selector */}
+      <div>
+        <label className="text-sm font-medium block mb-2">What do you want to create?</label>
+        <div className="grid grid-cols-4 gap-3">
+          {(Object.keys(TYPE_CONFIG) as CreatorType[]).map((t) => {
+            const config = TYPE_CONFIG[t];
+            const Icon = config.icon;
+            const selected = type === t;
+            return (
+              <button
+                key={t}
+                className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-colors ${
+                  selected
+                    ? "border-primary bg-primary/5"
+                    : "border-transparent bg-muted/30 hover:bg-muted/60"
+                }`}
+                onClick={() => setType(t)}
+              >
+                <Icon className={`h-6 w-6 ${config.color}`} />
+                <span className="text-sm font-medium">{config.label}</span>
+                <span className="text-[10px] text-muted-foreground text-center leading-tight">
+                  {config.description}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Description input (non-hook types) */}
+      {type !== "hook" && (
+        <>
+          <div>
+            <label className="text-sm font-medium block mb-1.5">
+              Describe what you want this {TYPE_CONFIG[type].label.toLowerCase()} to do
+            </label>
+            <textarea
+              ref={textareaRef}
+              className="w-full px-3 py-2 border rounded-md text-sm bg-background min-h-[120px] resize-y"
+              placeholder={getPlaceholder(type)}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              autoFocus
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Be specific about the behavior, constraints, and use cases you have in mind.
+            </p>
+          </div>
+
+          {/* Optional: pre-fill name */}
+          <div>
+            <label className="text-sm font-medium block mb-1.5">
+              Name <span className="text-muted-foreground font-normal">(optional, can set after generation)</span>
+            </label>
+            <input
+              type="text"
+              className="w-full px-3 py-2 border rounded-md text-sm font-mono bg-background"
+              placeholder={type === "skill" ? "my-skill" : type === "agent" ? "my-agent" : "my-rule"}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </div>
+
+          {/* Rule group selector */}
+          {type === "rule" && (
+            <div>
+              <label className="text-sm font-medium block mb-1.5">Rule Group</label>
+              <input
+                type="text"
+                className="w-full px-3 py-2 border rounded-md text-sm font-mono bg-background"
+                placeholder="common"
+                value={ruleGroup}
+                onChange={(e) => setRuleGroup(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Group folder under ~/.claude/rules/ (e.g., common, python, typescript)
+              </p>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Hook-specific form fields */}
+      {type === "hook" && (
+        <>
+          <div>
+            <label className="text-sm font-medium block mb-1.5">Hook Event Type</label>
+            <select
+              value={hookType}
+              onChange={(e) => setHookType(e.target.value)}
+              className="w-full px-3 py-2 border rounded-md text-sm bg-background"
+            >
+              <option value="PreToolUse">PreToolUse</option>
+              <option value="PostToolUse">PostToolUse</option>
+              <option value="Notification">Notification</option>
+              <option value="Stop">Stop</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-sm font-medium block mb-1.5">
+              Matcher <span className="text-muted-foreground font-normal">(optional — tool name filter)</span>
+            </label>
+            <input
+              type="text"
+              className="w-full px-3 py-2 border rounded-md text-sm font-mono bg-background"
+              placeholder="e.g., Bash, Write (leave empty for all tools)"
+              value={hookMatcher}
+              onChange={(e) => setHookMatcher(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium block mb-1.5">Command *</label>
+            <input
+              type="text"
+              className="w-full px-3 py-2 border rounded-md text-sm font-mono bg-background"
+              placeholder="e.g., /path/to/script.sh $TOOL_INPUT"
+              value={hookCommand}
+              onChange={(e) => setHookCommand(e.target.value)}
+              autoFocus
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Shell command to execute. Use $TOOL_INPUT for tool input JSON.
+            </p>
+          </div>
+          <div>
+            <label className="text-sm font-medium block mb-1.5">
+              Timeout <span className="text-muted-foreground font-normal">(ms, optional)</span>
+            </label>
+            <input
+              type="number"
+              className="w-full px-3 py-2 border rounded-md text-sm font-mono bg-background"
+              placeholder="10000"
+              value={hookTimeout}
+              onChange={(e) => setHookTimeout(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium block mb-1.5">
+              Description <span className="text-muted-foreground font-normal">(optional)</span>
+            </label>
+            <input
+              type="text"
+              className="w-full px-3 py-2 border rounded-md text-sm bg-background"
+              placeholder="What this hook does"
+              value={hookDescription}
+              onChange={(e) => setHookDescription(e.target.value)}
+            />
+          </div>
+        </>
+      )}
+    </>
+  );
+}

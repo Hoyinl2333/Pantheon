@@ -4,6 +4,7 @@ import {
   listWorkspaces,
   updateWorkspace,
   archiveWorkspace,
+  removeWorkspace,
 } from "@/plugins/aris-research/lib/workspace-manager";
 
 // ---------------------------------------------------------------------------
@@ -106,7 +107,35 @@ export async function PUT(req: NextRequest) {
 }
 
 // ---------------------------------------------------------------------------
-// DELETE — archive a workspace
+// PATCH — update workspace fields (name, status, etc.)
+// Body: { id: string, name?: string, status?: string }
+// ---------------------------------------------------------------------------
+export async function PATCH(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { id, ...updates } = body as { id?: string; [key: string]: unknown };
+
+    if (!id || typeof id !== "string") {
+      return NextResponse.json(
+        { error: "id is required" },
+        { status: 400 }
+      );
+    }
+
+    await updateWorkspace(id, updates);
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    const status = message.includes("not found") ? 404 : 500;
+    return NextResponse.json(
+      { error: `Failed to update workspace: ${message}` },
+      { status }
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// DELETE — remove workspace from index (does NOT delete files on disk)
 // Query: ?id=aris-1234567890
 // ---------------------------------------------------------------------------
 export async function DELETE(req: NextRequest) {
@@ -120,13 +149,13 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    await archiveWorkspace(id);
+    await removeWorkspace(id);
     return NextResponse.json({ ok: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     const status = message.includes("not found") ? 404 : 500;
     return NextResponse.json(
-      { error: `Failed to archive workspace: ${message}` },
+      { error: `Failed to remove workspace: ${message}` },
       { status }
     );
   }

@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/toast";
+import { useTranslations } from "next-intl";
 import {
   ListOrdered,
   Clock,
@@ -57,6 +58,8 @@ export default function QueuePage() {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [filter, setFilter] = useState<string>("all");
   const { toast } = useToast();
+  const t = useTranslations("queue");
+  const tc = useTranslations("common");
 
   const fetchQueue = useCallback(async () => {
     try {
@@ -89,13 +92,13 @@ export default function QueuePage() {
       const res = await fetch(`/api/queue/${id}`, { method: "DELETE" });
       const data = await res.json();
       if (res.ok) {
-        toast(`Session #${id} cancelled`, "success");
+        toast(t("sessionCancelled", { id }), "success");
         fetchQueue();
       } else {
-        toast(data.error || "Failed to cancel", "error");
+        toast(data.error || t("cancelFailed"), "error");
       }
     } catch {
-      toast("Failed to cancel session", "error");
+      toast(t("cancelSessionFailed"), "error");
     }
   };
 
@@ -114,13 +117,13 @@ export default function QueuePage() {
       });
       const data = await res.json();
       if (res.ok) {
-        toast(`Retried as session #${data.id}`, "success");
+        toast(t("retriedAs", { id: data.id }), "success");
         fetchQueue();
       } else {
-        toast(data.error || "Failed to retry", "error");
+        toast(data.error || t("retryFailed"), "error");
       }
     } catch {
-      toast("Failed to retry session", "error");
+      toast(t("retrySessionFailed"), "error");
     }
   };
 
@@ -129,13 +132,13 @@ export default function QueuePage() {
       const res = await fetch("/api/queue?action=clear-completed", { method: "DELETE" });
       const data = await res.json();
       if (res.ok) {
-        toast(`Cleared ${data.count || 0} completed sessions`, "success");
+        toast(t("clearedCompleted", { count: data.count || 0 }), "success");
         fetchQueue();
       } else {
-        toast(data.error || "Failed to clear", "error");
+        toast(data.error || t("clearFailed"), "error");
       }
     } catch {
-      toast("Failed to clear completed", "error");
+      toast(t("clearCompletedFailed"), "error");
     }
   };
 
@@ -162,11 +165,11 @@ export default function QueuePage() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <ListOrdered className="h-6 w-6" />
-          <h1 className="text-2xl font-bold">Queue</h1>
+          <h1 className="text-2xl font-bold">{t("title")}</h1>
           {workerRunning && (
             <Badge variant="default" className="text-xs">
               <Loader2 className="h-3 w-3 animate-spin mr-1" />
-              Worker Active
+              {t("workerActive")}
             </Badge>
           )}
         </div>
@@ -178,7 +181,7 @@ export default function QueuePage() {
             disabled={!stats || stats.completed === 0}
           >
             <Trash2 className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Clear Completed</span>
+            <span className="hidden sm:inline">{t("clearCompleted")}</span>
           </Button>
           <Button
             variant={autoRefresh ? "default" : "outline"}
@@ -186,7 +189,7 @@ export default function QueuePage() {
             onClick={() => setAutoRefresh(!autoRefresh)}
           >
             <RefreshCw className={`h-3.5 w-3.5 ${autoRefresh ? "animate-spin" : ""}`} />
-            <span className="hidden sm:inline">{autoRefresh ? "Auto" : "Manual"}</span>
+            <span className="hidden sm:inline">{autoRefresh ? t("autoRefresh") : t("manualRefresh")}</span>
           </Button>
         </div>
       </div>
@@ -195,22 +198,22 @@ export default function QueuePage() {
       {stats && (
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           {[
-            { label: "Total", value: stats.total, color: "text-foreground" },
-            { label: "Pending", value: stats.pending, color: "text-yellow-600" },
-            { label: "Running", value: stats.running, color: "text-blue-600" },
-            { label: "Completed", value: stats.completed, color: "text-green-600" },
-            { label: "Failed", value: stats.failed, color: "text-red-600" },
+            { key: "total", value: stats.total, color: "text-foreground" },
+            { key: "pending", value: stats.pending, color: "text-yellow-600" },
+            { key: "running", value: stats.running, color: "text-blue-600" },
+            { key: "completed", value: stats.completed, color: "text-green-600" },
+            { key: "failed", value: stats.failed, color: "text-red-600" },
           ].map((item) => (
             <Card
-              key={item.label}
-              className={`cursor-pointer transition-colors ${filter === item.label.toLowerCase() ? "ring-2 ring-primary" : ""}`}
+              key={item.key}
+              className={`cursor-pointer transition-colors ${filter === item.key ? "ring-2 ring-primary" : ""}`}
               onClick={() =>
-                setFilter(filter === item.label.toLowerCase() ? "all" : item.label.toLowerCase())
+                setFilter(filter === item.key ? "all" : item.key)
               }
             >
               <CardContent className="p-3 text-center">
                 <div className={`text-2xl font-bold ${item.color}`}>{item.value}</div>
-                <div className="text-xs text-muted-foreground">{item.label}</div>
+                <div className="text-xs text-muted-foreground">{t(item.key as "total" | "pending" | "running" | "completed" | "failed")}</div>
               </CardContent>
             </Card>
           ))}
@@ -221,28 +224,28 @@ export default function QueuePage() {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-lg">
-            {filter === "all" ? "All Sessions" : `${filter.charAt(0).toUpperCase() + filter.slice(1)} Sessions`}
+            {filter === "all" ? t("allSessions") : t("filterSessions", { filter: t(filter as "pending" | "running" | "completed" | "failed") })}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {sessions.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <ListOrdered className="h-12 w-12 mx-auto mb-3 opacity-30" />
-              <p className="text-sm">No queued sessions yet.</p>
-              <p className="text-xs mt-1">Use /bg in Telegram or the Queue button in Chat to add tasks.</p>
+              <p className="text-sm">{t("noSessions")}</p>
+              <p className="text-xs mt-1">{t("noSessionsHint")}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-muted-foreground">
-                    <th className="text-left py-2 px-2 font-medium w-12">#</th>
-                    <th className="text-left py-2 px-2 font-medium">Prompt</th>
-                    <th className="text-left py-2 px-2 font-medium w-20">Provider</th>
-                    <th className="text-left py-2 px-2 font-medium w-24">Status</th>
-                    <th className="text-left py-2 px-2 font-medium w-28">Created</th>
-                    <th className="text-left py-2 px-2 font-medium w-24">Duration</th>
-                    <th className="text-right py-2 px-2 font-medium w-20">Actions</th>
+                    <th className="text-left py-2 px-2 font-medium w-12 hidden sm:table-cell">{t("columns.id")}</th>
+                    <th className="text-left py-2 px-2 font-medium">{t("columns.prompt")}</th>
+                    <th className="text-left py-2 px-2 font-medium w-20 hidden sm:table-cell">{t("columns.provider")}</th>
+                    <th className="text-left py-2 px-2 font-medium w-24">{t("columns.status")}</th>
+                    <th className="text-left py-2 px-2 font-medium w-28 hidden md:table-cell">{t("columns.created")}</th>
+                    <th className="text-left py-2 px-2 font-medium w-24 hidden md:table-cell">{t("columns.duration")}</th>
+                    <th className="text-right py-2 px-2 font-medium w-20">{t("columns.actions")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -252,12 +255,12 @@ export default function QueuePage() {
                     const duration = s.started_at && s.completed_at
                       ? `${Math.round((new Date(s.completed_at).getTime() - new Date(s.started_at).getTime()) / 1000)}s`
                       : s.started_at
-                        ? "running..."
+                        ? t("durationRunning")
                         : "—";
 
                     return (
                       <tr key={s.id} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
-                        <td className="py-2.5 px-2 font-mono text-xs text-muted-foreground">{s.id}</td>
+                        <td className="py-2.5 px-2 font-mono text-xs text-muted-foreground hidden sm:table-cell">{s.id}</td>
                         <td className="py-2.5 px-2">
                           <div className="max-w-xs truncate" title={s.prompt}>
                             {s.prompt}
@@ -268,20 +271,20 @@ export default function QueuePage() {
                             </div>
                           )}
                         </td>
-                        <td className="py-2.5 px-2">
+                        <td className="py-2.5 px-2 hidden sm:table-cell">
                           <Badge variant="outline" className="text-xs">{s.provider}</Badge>
                         </td>
                         <td className="py-2.5 px-2">
                           <Badge variant="outline" className={`text-xs ${sc.color}`}>
                             {sc.icon}
-                            <span className="ml-1">{sc.label}</span>
+                            <span className="ml-1">{t(s.status as "pending" | "running" | "completed" | "failed")}</span>
                           </Badge>
                         </td>
-                        <td className="py-2.5 px-2 text-xs text-muted-foreground">
+                        <td className="py-2.5 px-2 text-xs text-muted-foreground hidden md:table-cell">
                           {created.toLocaleDateString(undefined, { month: "short", day: "numeric" })}{" "}
                           {created.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
                         </td>
-                        <td className="py-2.5 px-2 text-xs font-mono text-muted-foreground">
+                        <td className="py-2.5 px-2 text-xs font-mono text-muted-foreground hidden md:table-cell">
                           {duration}
                         </td>
                         <td className="py-2.5 px-2 text-right">
@@ -292,7 +295,7 @@ export default function QueuePage() {
                                 size="sm"
                                 className="h-7 w-7 p-0"
                                 onClick={() => handleCancel(s.id)}
-                                title="Cancel"
+                                title={tc("cancel")}
                               >
                                 <XCircle className="h-3.5 w-3.5 text-red-500" />
                               </Button>
@@ -303,7 +306,7 @@ export default function QueuePage() {
                                 size="sm"
                                 className="h-7 w-7 p-0"
                                 onClick={() => handleRetry(s)}
-                                title="Retry"
+                                title={tc("retry")}
                               >
                                 <RotateCcw className="h-3.5 w-3.5 text-blue-500" />
                               </Button>

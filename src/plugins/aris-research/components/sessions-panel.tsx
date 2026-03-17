@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -65,15 +65,53 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-function LogViewer({ logFile }: { logFile: string }) {
+/** Colorize log lines based on content */
+function colorizeLog(line: string): string {
+  // Tool use patterns
+  if (line.includes("Read(") || line.includes("Write(") || line.includes("Edit(")) return "text-blue-400";
+  if (line.includes("Bash(") || line.includes("bash")) return "text-purple-400";
+  if (line.includes("WebSearch") || line.includes("WebFetch")) return "text-cyan-400";
+  if (line.includes("Glob(") || line.includes("Grep(")) return "text-indigo-400";
+  if (line.includes("ERROR") || line.includes("error")) return "text-red-400";
+  if (line.includes("COMPLETED") || line.includes("Success")) return "text-green-400";
+  if (line.includes("Created") || line.includes("wrote") || line.includes("Wrote") || line.includes("saved")) return "text-green-300";
+  if (line.startsWith("---") || line.startsWith("===")) return "text-zinc-500";
+  return "";
+}
+
+/** Extract summary stats from log content */
+function extractStats(content: string): { toolCalls: number; filesWritten: string[]; searchCount: number } {
+  const lines = content.split("\n");
+  const toolCalls = lines.filter((l) =>
+    l.includes("Read(") || l.includes("Write(") || l.includes("Edit(") ||
+    l.includes("Bash(") || l.includes("WebSearch") || l.includes("WebFetch") ||
+    l.includes("Glob(") || l.includes("Grep(")
+  ).length;
+  const filesWritten = lines
+    .filter((l) => l.includes("Write(") || l.includes("Created") || l.includes("wrote"))
+    .map((l) => {
+      const match = l.match(/(?:Write|Created|wrote)\s*\(?['"]?([^'")\s]+)/);
+      return match?.[1] ?? "";
+    })
+    .filter(Boolean);
+  const searchCount = lines.filter((l) =>
+    l.includes("WebSearch") || l.includes("WebFetch") || l.includes("arxiv")
+  ).length;
+  return { toolCalls, filesWritten, searchCount };
+}
+
+function LogViewer({ logFile, isZh }: { logFile: string; isZh?: boolean }) {
   const [content, setContent] = useState("Loading...");
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [lineCount, setLineCount] = useState(0);
+  const logEndRef = useRef<HTMLDivElement>(null);
 
   const fetchLog = useCallback(async () => {
     try {
-      const res = await fetch(`/api/plugins/aris-research/sessions/log?path=${encodeURIComponent(logFile)}&tail=200`);
+      const res = await fetch(`/api/plugins/aris-research/sessions/log?path=${encodeURIComponent(logFile)}&tail=500`);
       const data = await res.json();
       setContent(data.content || "(empty)");
+      setLineCount(data.lines ?? 0);
       if (data.completed) setAutoRefresh(false);
     } catch {
       setContent("Failed to load log");
@@ -83,21 +121,71 @@ function LogViewer({ logFile }: { logFile: string }) {
   useEffect(() => {
     fetchLog();
     if (!autoRefresh) return;
-    const interval = setInterval(fetchLog, 3000);
+    const interval = setInterval(fetchLog, 2000);
     return () => clearInterval(interval);
   }, [fetchLog, autoRefresh]);
 
+  // Auto-scroll
+  useEffect(() => {
+    logEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [content]);
+
+  const stats = useMemo(() => extractStats(content), [content]);
+  const lines = useMemo(() => content.split("\n"), [content]);
+
   return (
     <div className="space-y-2">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <span className="text-[11px] text-muted-foreground font-mono truncate">{logFile}</span>
-        <Button size="sm" variant="ghost" className="h-6 px-2" onClick={fetchLog}>
-          <RefreshCw className="h-3 w-3" />
-        </Button>
+        <span className="text-[11px] text-muted-foreground font-mono truncate flex-1">{logFile}</span>
+        <div className="flex items-center gap-2 shrink-0">
+          {autoRefresh && (
+            <span className="text-[10px] text-amber-500 flex items-center gap-1">
+              <Loader2 className="h-2.5 w-2.5 animate-spin" />
+              {isZh ? "实时" : "Live"}
+            </span>
+          )}
+          <Button size="sm" variant="ghost" className="h-6 px-2" onClick={fetchLog}>
+            <RefreshCw className="h-3 w-3" />
+          </Button>
+        </div>
       </div>
-      <pre className="bg-zinc-950 text-zinc-200 rounded-lg p-4 text-xs font-mono overflow-auto max-h-[50vh] whitespace-pre-wrap leading-relaxed">
-        {content}
-      </pre>
+
+      {/* Stats bar */}
+      {lineCount > 5 && (
+        <div className="flex items-center gap-3 text-[10px] text-muted-foreground bg-muted/50 rounded px-2.5 py-1.5">
+          <span>{lineCount} {isZh ? "行" : "lines"}</span>
+          {stats.toolCalls > 0 && (
+            <span className="text-blue-400">{stats.toolCalls} {isZh ? "工具调用" : "tool calls"}</span>
+          )}
+          {stats.searchCount > 0 && (
+            <span className="text-cyan-400">{stats.searchCount} {isZh ? "搜索" : "searches"}</span>
+          )}
+          {stats.filesWritten.length > 0 && (
+            <span className="text-green-400">{stats.filesWritten.length} {isZh ? "文件写入" : "files written"}</span>
+          )}
+        </div>
+      )}
+
+      {/* Files written summary */}
+      {stats.filesWritten.length > 0 && (
+        <div className="bg-green-950/30 border border-green-800/30 rounded px-2.5 py-1.5 text-[11px]">
+          <div className="text-green-400 font-medium mb-1">{isZh ? "产出文件" : "Output Files"}</div>
+          {stats.filesWritten.map((f, i) => (
+            <div key={i} className="text-green-300 font-mono">{f}</div>
+          ))}
+        </div>
+      )}
+
+      {/* Log content with colorized lines */}
+      <div className="bg-zinc-950 rounded-lg p-4 overflow-auto max-h-[50vh]">
+        {lines.map((line, i) => (
+          <div key={i} className={`text-xs font-mono whitespace-pre-wrap leading-relaxed ${colorizeLog(line)}`}>
+            {line || "\u00A0"}
+          </div>
+        ))}
+        <div ref={logEndRef} />
+      </div>
     </div>
   );
 }
@@ -226,7 +314,7 @@ export function SessionsButton({ isZh }: SessionsButtonProps) {
               )}
             </DialogTitle>
           </DialogHeader>
-          {viewingLog && <LogViewer logFile={viewingLog.logFile} />}
+          {viewingLog && <LogViewer logFile={viewingLog.logFile} isZh={isZh} />}
         </DialogContent>
       </Dialog>
     </>

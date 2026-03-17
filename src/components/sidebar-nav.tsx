@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -19,6 +19,7 @@ import {
   PanelLeftOpen,
   Puzzle,
   ListOrdered,
+  Globe,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationBell } from "@/components/notification-bell";
@@ -27,6 +28,7 @@ import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { ShortcutsHelp } from "@/components/shortcuts-help";
 import { usePluginSidebarItems } from "@/hooks/use-plugins";
 import { useTranslations } from "next-intl";
+import { useLocale } from "@/i18n/provider";
 import type { LucideIcon } from "lucide-react";
 
 const navItems = [
@@ -49,6 +51,11 @@ export function SidebarNav() {
   const touchStartXRef = useRef<number | null>(null);
   const sidebarRef = useRef<HTMLElement>(null);
   const pluginSidebarGroups = usePluginSidebarItems();
+  const { locale, setLocale } = useLocale();
+
+  const toggleLocale = useCallback(() => {
+    setLocale(locale === "en" ? "zh-CN" : "en");
+  }, [locale, setLocale]);
 
   // Persist collapsed state in localStorage
   useEffect(() => {
@@ -177,6 +184,7 @@ export function SidebarNav() {
       {/* Sidebar */}
       <aside
         ref={sidebarRef}
+        aria-label="Main navigation"
         className={`
           fixed lg:static
           inset-y-0 left-0
@@ -218,7 +226,7 @@ export function SidebarNav() {
         </div>
 
         {/* Navigation */}
-        <nav className="space-y-1 flex-1 overflow-y-auto min-h-0">
+        <nav aria-label="Dashboard navigation" className="space-y-1 flex-1 overflow-y-auto min-h-0">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
             const label = t(item.labelKey);
@@ -306,12 +314,21 @@ export function SidebarNav() {
               >
                 <PanelLeftOpen className="h-4 w-4" />
               </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-10 w-10 p-0 opacity-70 hover:opacity-100 touch-manipulation"
+                onClick={toggleLocale}
+                title={locale === "en" ? "Switch to Chinese" : "切换到英文"}
+              >
+                <Globe className="h-4 w-4" />
+              </Button>
               <ThemeToggle />
             </>
           ) : (
             <>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">v2.0.0</span>
+                <span className="text-xs text-muted-foreground">v3.1.0</span>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -331,6 +348,16 @@ export function SidebarNav() {
                   title="Collapse sidebar"
                 >
                   <PanelLeftClose className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 opacity-70 hover:opacity-100 transition-opacity touch-manipulation"
+                  onClick={toggleLocale}
+                  title={locale === "en" ? "Switch to Chinese" : "切换到英文"}
+                >
+                  <Globe className="h-3.5 w-3.5 mr-0.5" />
+                  <span className="text-[10px] font-medium">{locale === "en" ? "EN" : "中"}</span>
                 </Button>
                 <ThemeToggle />
               </div>

@@ -45,6 +45,7 @@ export default function SettingsPage() {
   // Editable fields
   const [defaultModel, setDefaultModel] = useState("");
   const [codexDefaultModel, setCodexDefaultModel] = useState("");
+  const [codexApiKeyId, setCodexApiKeyId] = useState("env");
   const [theme, setTheme] = useState("");
   const [autoUpdate, setAutoUpdate] = useState(true);
   const [alwaysThinkingEnabled, setAlwaysThinkingEnabled] = useState(true);
@@ -57,6 +58,7 @@ export default function SettingsPage() {
   const [originalValues, setOriginalValues] = useState({
     defaultModel: "",
     codexDefaultModel: "",
+    codexApiKeyId: "env",
     theme: "",
     autoUpdate: true,
     alwaysThinkingEnabled: true,
@@ -67,6 +69,7 @@ export default function SettingsPage() {
   const hasChanges =
     defaultModel !== originalValues.defaultModel ||
     codexDefaultModel !== originalValues.codexDefaultModel ||
+    codexApiKeyId !== originalValues.codexApiKeyId ||
     theme !== originalValues.theme ||
     autoUpdate !== originalValues.autoUpdate ||
     alwaysThinkingEnabled !== originalValues.alwaysThinkingEnabled ||
@@ -84,12 +87,14 @@ export default function SettingsPage() {
 
         const model = merged.defaultModel || "claude-sonnet-4-5-20250929";
         const codexModel = merged.codexDefaultModel as string || "o3";
+        const codexKeyId = (merged as Record<string, unknown>).codexApiKeyId as string || "env";
         const themeValue = merged.theme || "system";
         const autoUpdateValue = merged.autoUpdate ?? true;
         const thinkingValue = merged.alwaysThinkingEnabled ?? true;
 
         setDefaultModel(model);
         setCodexDefaultModel(codexModel);
+        setCodexApiKeyId(codexKeyId);
         setTheme(themeValue);
         setAutoUpdate(autoUpdateValue);
         setAlwaysThinkingEnabled(thinkingValue);
@@ -97,6 +102,7 @@ export default function SettingsPage() {
         setOriginalValues({
           defaultModel: model,
           codexDefaultModel: codexModel,
+          codexApiKeyId: codexKeyId,
           theme: themeValue,
           autoUpdate: autoUpdateValue,
           alwaysThinkingEnabled: thinkingValue,
@@ -124,6 +130,7 @@ export default function SettingsPage() {
         body: JSON.stringify({
           defaultModel,
           codexDefaultModel,
+          codexApiKeyId,
           theme,
           autoUpdate,
           alwaysThinkingEnabled,
@@ -236,12 +243,14 @@ export default function SettingsPage() {
           <GeneralSettings
             defaultModel={defaultModel}
             codexDefaultModel={codexDefaultModel}
+            codexApiKeyId={codexApiKeyId}
             codexInstalled={environment.codexInstalled}
             theme={theme}
             autoUpdate={autoUpdate}
             alwaysThinkingEnabled={alwaysThinkingEnabled}
             onDefaultModelChange={setDefaultModel}
             onCodexDefaultModelChange={setCodexDefaultModel}
+            onCodexApiKeyChange={setCodexApiKeyId}
             onThemeChange={setTheme}
             onAutoUpdateChange={setAutoUpdate}
             onThinkingChange={setAlwaysThinkingEnabled}

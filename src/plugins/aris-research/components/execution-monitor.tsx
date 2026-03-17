@@ -29,6 +29,7 @@ const STATUS_ICON: Record<NodeStatus, React.ReactNode> = {
   done: <CheckCircle className="h-3 w-3 text-green-500" />,
   error: <XCircle className="h-3 w-3 text-red-500" />,
   skipped: <Clock className="h-3 w-3 text-muted-foreground/40" />,
+  checkpoint: <Clock className="h-3 w-3 text-yellow-500 animate-pulse" />,
 };
 
 export function ExecutionMonitor({ pipeline, isZh }: ExecutionMonitorProps) {

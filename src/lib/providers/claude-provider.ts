@@ -57,9 +57,13 @@ export class ClaudeProvider implements CliProvider {
   buildCommand(
     prompt: string,
     options: SpawnOptions
-  ): { binary: string; args: string[]; env: Record<string, string | undefined> } {
+  ): { binary: string; args: string[]; env: Record<string, string | undefined>; stdinPrompt?: string } {
     const binary = findClaudeBinary();
-    const args = ["-p", prompt, "--output-format", "stream-json", "--verbose"];
+    // On Windows, pass prompt via stdin to avoid cmd.exe mangling | & < > ^ and CJK chars
+    const useStdin = process.platform === "win32";
+    const args = useStdin
+      ? ["-p", "-", "--output-format", "stream-json", "--verbose"]
+      : ["-p", prompt, "--output-format", "stream-json", "--verbose"];
 
     if (options.sessionId && typeof options.sessionId === "string" && options.sessionId.trim()) {
       args.push("--resume", options.sessionId.trim());
@@ -106,7 +110,7 @@ export class ClaudeProvider implements CliProvider {
       if (bashPath) env.CLAUDE_CODE_GIT_BASH_PATH = bashPath;
     }
 
-    return { binary, args, env };
+    return { binary, args, env, ...(useStdin ? { stdinPrompt: prompt } : {}) };
   }
 
   parseEvent(line: string): ProviderEvent | null {

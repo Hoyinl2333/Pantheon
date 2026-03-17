@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/toast";
+import { useTranslations } from "next-intl";
 import {
   MessageCircle,
   CheckCircle,
@@ -14,40 +15,14 @@ import {
   Save,
   Eye,
   EyeOff,
-  ChevronDown,
-  ChevronRight,
-  Play,
-  Square,
-  Shield,
   Radio,
   Globe,
 } from "lucide-react";
-
-interface BotStatus {
-  configured: boolean;
-  url: string | null;
-  pendingUpdateCount?: number;
-  lastErrorMessage?: string | null;
-  error?: string;
-}
-
-interface PollingStatus {
-  polling: boolean;
-  uptime: number | null;
-}
-
-interface ApprovalStatus {
-  available: boolean;
-  chatId: string | null;
-}
-
-interface EnvVar {
-  value: string;
-  masked: string;
-  source: "env.local" | "process";
-}
-
-type BotMode = "polling" | "webhook";
+import type { BotStatus, PollingStatus, ApprovalStatus, EnvVar, BotMode } from "./telegram-types";
+import { TelegramPollingPanel } from "./telegram-polling-panel";
+import { TelegramWebhookPanel } from "./telegram-webhook-panel";
+import { TelegramApprovalPanel } from "./telegram-approval-panel";
+import { TelegramSetupGuide } from "./telegram-setup-guide";
 
 export function TelegramSettings() {
   const [botStatus, setBotStatus] = useState<BotStatus | null>(null);
@@ -56,22 +31,19 @@ export function TelegramSettings() {
   const [webhookAutoFilled, setWebhookAutoFilled] = useState(false);
   const [settingWebhook, setSettingWebhook] = useState(false);
   const [testingSend, setTestingSend] = useState(false);
-  const [showGuide, setShowGuide] = useState(false);
   const { toast } = useToast();
+  const t = useTranslations("settings.telegram");
 
-  // Env config state
   const [envVars, setEnvVars] = useState<Record<string, EnvVar>>({});
   const [tokenInput, setTokenInput] = useState("");
   const [chatIdsInput, setChatIdsInput] = useState("");
   const [showToken, setShowToken] = useState(false);
   const [savingEnv, setSavingEnv] = useState(false);
 
-  // Polling state
   const [botMode, setBotMode] = useState<BotMode>("webhook");
   const [pollingStatus, setPollingStatus] = useState<PollingStatus>({ polling: false, uptime: null });
   const [pollingLoading, setPollingLoading] = useState(false);
 
-  // Approval state
   const [approvalStatus, setApprovalStatus] = useState<ApprovalStatus>({ available: false, chatId: null });
 
   const fetchPollingStatus = useCallback(async () => {
@@ -87,7 +59,6 @@ export function TelegramSettings() {
     }
   }, []);
 
-  // Load bot status + env + polling + approval
   useEffect(() => {
     const loadAll = async () => {
       try {
@@ -105,7 +76,6 @@ export function TelegramSettings() {
         if (vars.TELEGRAM_BOT_TOKEN) setTokenInput(vars.TELEGRAM_BOT_TOKEN.value);
         if (vars.TELEGRAM_CHAT_IDS) setChatIdsInput(vars.TELEGRAM_CHAT_IDS.value);
 
-        // Auto-fill webhook URL: use existing URL, or preset from SCC_BASE_URL
         if (botRes.url) {
           setWebhookUrl(botRes.url);
         } else if (vars.SCC_BASE_URL) {
@@ -114,10 +84,9 @@ export function TelegramSettings() {
           setWebhookAutoFilled(true);
         }
 
-        // Fetch polling status
         await fetchPollingStatus();
       } catch {
-        setBotStatus({ configured: false, url: null, error: "Failed to connect" });
+        setBotStatus({ configured: false, url: null, error: t("connectFailed") });
       } finally {
         setBotLoading(false);
       }
@@ -125,7 +94,6 @@ export function TelegramSettings() {
     loadAll();
   }, [fetchPollingStatus]);
 
-  // Poll for polling status updates when in polling mode
   useEffect(() => {
     if (botMode !== "polling") return;
     const interval = setInterval(fetchPollingStatus, 10_000);
@@ -134,7 +102,7 @@ export function TelegramSettings() {
 
   const handleSetWebhook = async () => {
     if (!webhookUrl.trim()) {
-      toast("Please enter a webhook URL", "error");
+      toast(t("webhookUrlRequired"), "error");
       return;
     }
     setSettingWebhook(true);
@@ -146,7 +114,7 @@ export function TelegramSettings() {
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        toast("Webhook set successfully", "success");
+        toast(t("webhookSetSuccess"), "success");
         setBotStatus({
           configured: true,
           url: webhookUrl.trim(),
@@ -154,10 +122,10 @@ export function TelegramSettings() {
           lastErrorMessage: null,
         });
       } else {
-        toast(data.error || "Failed to set webhook", "error");
+        toast(data.error || t("webhookSetError"), "error");
       }
     } catch {
-      toast("Failed to set webhook", "error");
+      toast(t("webhookSetError"), "error");
     } finally {
       setSettingWebhook(false);
     }
@@ -173,12 +141,12 @@ export function TelegramSettings() {
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        toast("Test message sent successfully!", "success");
+        toast(t("testSuccess"), "success");
       } else {
-        toast(data.error || "Failed to send test message", "error");
+        toast(data.error || t("testError"), "error");
       }
     } catch {
-      toast("Failed to send test message", "error");
+      toast(t("testError"), "error");
     } finally {
       setTestingSend(false);
     }
@@ -196,7 +164,7 @@ export function TelegramSettings() {
       }
 
       if (Object.keys(updates).length === 0) {
-        toast("No changes to save", "info");
+        toast(t("noChangesToSave"), "info");
         setSavingEnv(false);
         return;
       }
@@ -208,12 +176,12 @@ export function TelegramSettings() {
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        toast("Saved! Restart server to apply changes.", "success");
+        toast(t("envSavedRestart"), "success");
       } else {
-        toast(data.error || "Failed to save", "error");
+        toast(data.error || t("envSaveFailed"), "error");
       }
     } catch {
-      toast("Failed to save env vars", "error");
+      toast(t("envSaveFailed"), "error");
     } finally {
       setSavingEnv(false);
     }
@@ -230,13 +198,13 @@ export function TelegramSettings() {
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        toast(`Polling ${action === "start" ? "started" : "stopped"}`, "success");
+        toast(t(action === "start" ? "pollingStarted" : "pollingStopped"), "success");
         await fetchPollingStatus();
       } else {
-        toast(data.error || `Failed to ${action} polling`, "error");
+        toast(data.error || t(action === "start" ? "pollingStartFailed" : "pollingStopFailed"), "error");
       }
     } catch {
-      toast(`Failed to ${action} polling`, "error");
+      toast(t(action === "start" ? "pollingStartFailed" : "pollingStopFailed"), "error");
     } finally {
       setPollingLoading(false);
     }
@@ -255,25 +223,34 @@ export function TelegramSettings() {
 
   const isTokenConfigured = !!envVars.TELEGRAM_BOT_TOKEN || botStatus?.error !== "TELEGRAM_BOT_TOKEN not configured";
 
+  const commands = [
+    { cmd: "/help", key: "help" as const },
+    { cmd: "/sessions", key: "sessions" as const },
+    { cmd: "/status", key: "status" as const },
+    { cmd: "/chat", key: "chat" as const },
+    { cmd: "/bg", key: "bg" as const },
+    { cmd: "/queue", key: "queue" as const },
+  ];
+
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2">
           <MessageCircle className="h-5 w-5" />
-          Telegram Bot
+          {t("title")}
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          Connect a Telegram bot for remote session management, chat, and permission approval.
+          {t("description")}
         </p>
       </CardHeader>
       <CardContent className="space-y-5">
         {/* Configuration */}
         <div className="space-y-4">
-          <div className="text-sm font-medium">Configuration</div>
+          <div className="text-sm font-medium">{t("configuration")}</div>
 
           {/* Bot Token */}
           <div className="space-y-1.5">
-            <label className="text-sm text-muted-foreground">Bot Token</label>
+            <label className="text-sm text-muted-foreground">{t("botToken")}</label>
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <input
@@ -293,20 +270,20 @@ export function TelegramSettings() {
             </div>
             {envVars.TELEGRAM_BOT_TOKEN && (
               <div className="text-xs text-muted-foreground">
-                Source: {envVars.TELEGRAM_BOT_TOKEN.source}
+                {t("tokenSource", { source: envVars.TELEGRAM_BOT_TOKEN.source })}
               </div>
             )}
           </div>
 
           {/* Chat IDs */}
           <div className="space-y-1.5">
-            <label className="text-sm text-muted-foreground">Allowed Chat IDs</label>
+            <label className="text-sm text-muted-foreground">{t("allowedChatIds")}</label>
             <input
               type="text"
               value={chatIdsInput}
               onChange={(e) => setChatIdsInput(e.target.value)}
               className="w-full px-3 py-1.5 text-sm font-mono border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring"
-              placeholder="Comma-separated chat IDs (empty = allow all)"
+              placeholder={t("chatIdsPlaceholder")}
             />
           </div>
 
@@ -318,7 +295,7 @@ export function TelegramSettings() {
             disabled={savingEnv}
           >
             {savingEnv ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Save className="h-3.5 w-3.5 mr-1" />}
-            Save to .env.local
+            {t("saveToEnv")}
           </Button>
         </div>
 
@@ -326,32 +303,32 @@ export function TelegramSettings() {
         {botLoading ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
-            Checking bot status...
+            {t("checkingStatus")}
           </div>
         ) : isTokenConfigured ? (
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <Badge variant="default">
                 <CheckCircle className="h-3 w-3 mr-1" />
-                Token Configured
+                {t("tokenConfigured")}
               </Badge>
               {pollingStatus.polling && (
                 <Badge variant="default">
                   <Radio className="h-3 w-3 mr-1" />
-                  Polling Active
+                  {t("pollingActive")}
                 </Badge>
               )}
               {!pollingStatus.polling && botStatus?.configured && botStatus.url && (
                 <Badge variant="default">
                   <Globe className="h-3 w-3 mr-1" />
-                  Webhook Active
+                  {t("webhookActive")}
                 </Badge>
               )}
             </div>
 
             {/* Mode Selector */}
             <div className="space-y-3">
-              <div className="text-sm font-medium">Bot Mode</div>
+              <div className="text-sm font-medium">{t("botMode")}</div>
               <div className="flex gap-2">
                 <button
                   onClick={() => setBotMode("polling")}
@@ -378,130 +355,30 @@ export function TelegramSettings() {
               </div>
             </div>
 
-            {/* Polling Mode */}
             {botMode === "polling" && (
-              <div className="space-y-3 bg-muted/30 rounded-md p-3">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <div className="text-sm font-medium">Long Polling</div>
-                    <div className="text-xs text-muted-foreground">
-                      No public URL needed. Bot polls Telegram for updates.
-                    </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant={pollingStatus.polling ? "destructive" : "default"}
-                    onClick={handlePollingToggle}
-                    disabled={pollingLoading}
-                  >
-                    {pollingLoading ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
-                    ) : pollingStatus.polling ? (
-                      <Square className="h-3.5 w-3.5 mr-1" />
-                    ) : (
-                      <Play className="h-3.5 w-3.5 mr-1" />
-                    )}
-                    {pollingStatus.polling ? "Stop" : "Start"}
-                  </Button>
-                </div>
-                {pollingStatus.polling && (
-                  <div className="text-xs text-muted-foreground">
-                    Uptime: {formatUptime(pollingStatus.uptime)}
-                  </div>
-                )}
-              </div>
+              <TelegramPollingPanel
+                pollingStatus={pollingStatus}
+                pollingLoading={pollingLoading}
+                onPollingToggle={handlePollingToggle}
+                formatUptime={formatUptime}
+              />
             )}
 
-            {/* Webhook Mode */}
             {botMode === "webhook" && (
-              <div className="space-y-3">
-                {botStatus?.url && (
-                  <div className="bg-muted/50 rounded-md p-3 space-y-1">
-                    <div className="text-xs font-medium">Current Webhook</div>
-                    <code className="text-xs break-all">{botStatus.url}</code>
-                    {botStatus.pendingUpdateCount !== undefined &&
-                      botStatus.pendingUpdateCount > 0 && (
-                        <div className="text-xs text-amber-600 mt-1">
-                          {botStatus.pendingUpdateCount} pending update(s)
-                        </div>
-                      )}
-                    {botStatus.lastErrorMessage && (
-                      <div className="text-xs text-red-500 mt-1">
-                        Last error: {botStatus.lastErrorMessage}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Set/Update Webhook */}
-                <div className="space-y-2">
-                  <div className="text-sm font-medium">
-                    {botStatus?.url ? "Update" : "Set"} Webhook URL
-                  </div>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={webhookUrl}
-                      onChange={(e) => {
-                        setWebhookUrl(e.target.value);
-                        setWebhookAutoFilled(false);
-                      }}
-                      className="flex-1 px-3 py-1.5 text-sm font-mono border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring"
-                      placeholder="https://your-domain.com/api/bot/telegram"
-                    />
-                    <Button
-                      size="sm"
-                      onClick={handleSetWebhook}
-                      disabled={settingWebhook || !webhookUrl.trim()}
-                    >
-                      {settingWebhook ? (
-                        <>
-                          <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> Setting...
-                        </>
-                      ) : (
-                        "Set Webhook"
-                      )}
-                    </Button>
-                  </div>
-                  {webhookAutoFilled && (
-                    <div className="text-xs text-muted-foreground">
-                      Auto-filled from SCC_BASE_URL
-                    </div>
-                  )}
-                </div>
-              </div>
+              <TelegramWebhookPanel
+                botStatus={botStatus}
+                webhookUrl={webhookUrl}
+                webhookAutoFilled={webhookAutoFilled}
+                settingWebhook={settingWebhook}
+                onWebhookUrlChange={(value) => {
+                  setWebhookUrl(value);
+                  setWebhookAutoFilled(false);
+                }}
+                onSetWebhook={handleSetWebhook}
+              />
             )}
 
-            {/* Approval Endpoint */}
-            <div className="space-y-2 bg-muted/30 rounded-md p-3">
-              <div className="flex items-center gap-2">
-                <Shield className="h-4 w-4 text-primary" />
-                <span className="text-sm font-medium">Permission Approval</span>
-                {approvalStatus.available ? (
-                  <Badge variant="default">
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                    Ready
-                  </Badge>
-                ) : (
-                  <Badge variant="secondary">
-                    <XCircle className="h-3 w-3 mr-1" />
-                    Unavailable
-                  </Badge>
-                )}
-              </div>
-              <div className="text-xs text-muted-foreground space-y-1">
-                <p>Claude Code tool permissions are forwarded to Telegram for approval.</p>
-                <p>
-                  Endpoint:{" "}
-                  <code className="bg-muted px-1 rounded">
-                    http://localhost:3000/api/bot/telegram/approval
-                  </code>
-                </p>
-                {approvalStatus.chatId && (
-                  <p>Approval chat: <code className="bg-muted px-1 rounded">{approvalStatus.chatId}</code></p>
-                )}
-              </div>
-            </div>
+            <TelegramApprovalPanel approvalStatus={approvalStatus} />
 
             {/* Test Connection */}
             <Button
@@ -515,63 +392,34 @@ export function TelegramSettings() {
               ) : (
                 <Send className="h-3.5 w-3.5 mr-1" />
               )}
-              Test Connection
+              {t("testConnection")}
             </Button>
           </div>
         ) : (
           <div className="flex items-center gap-2">
             <Badge variant="secondary">
               <XCircle className="h-3 w-3 mr-1" />
-              Not Active
+              {t("notActive")}
             </Badge>
             <span className="text-xs text-muted-foreground">
-              Configure and save token above, then restart server.
+              {t("configureHint")}
             </span>
           </div>
         )}
 
-        {/* Setup Guide */}
-        <div className="space-y-2">
-          <button
-            onClick={() => setShowGuide(!showGuide)}
-            className="flex items-center gap-1 text-sm font-medium hover:text-foreground transition-colors"
-          >
-            {showGuide ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-            Setup Guide
-          </button>
-          {showGuide && (
-            <div className="bg-muted/50 rounded-md p-3 space-y-2 text-xs text-muted-foreground">
-              <ol className="list-decimal list-inside space-y-1.5">
-                <li>Create a bot via <code className="bg-muted px-1 rounded">@BotFather</code> on Telegram</li>
-                <li>Copy the bot token and paste it above</li>
-                <li>Get your chat ID by messaging <code className="bg-muted px-1 rounded">@userinfobot</code></li>
-                <li>Add chat ID above (optional, leave empty to allow all)</li>
-                <li>Save to .env.local and restart the server</li>
-                <li>
-                  Choose mode:
-                  <ul className="list-disc list-inside ml-4 mt-1 space-y-0.5">
-                    <li><strong>Polling</strong> — Click Start. No public URL needed.</li>
-                    <li><strong>Webhook</strong> — Set URL to <code className="bg-muted px-1 rounded">https://your-domain/api/bot/telegram</code></li>
-                  </ul>
-                </li>
-                <li>Click &quot;Test Connection&quot; to verify</li>
-              </ol>
-            </div>
-          )}
-        </div>
+        <TelegramSetupGuide
+          isTokenConfigured={isTokenConfigured}
+          tokenInput={tokenInput}
+          chatIdsInput={chatIdsInput}
+          pollingStatus={pollingStatus}
+          botStatus={botStatus}
+        />
 
         {/* Supported Commands */}
         <div className="space-y-2">
-          <div className="text-sm font-medium">Supported Commands</div>
+          <div className="text-sm font-medium">{t("supportedCommands")}</div>
           <div className="grid grid-cols-2 gap-1.5">
-            {[
-              { cmd: "/help", desc: "Show available commands" },
-              { cmd: "/sessions", desc: "List active sessions" },
-              { cmd: "/status", desc: "Dashboard status overview" },
-              { cmd: "/chat", desc: "Chat with Claude session" },
-              { cmd: "/bg", desc: "Run background task" },
-              { cmd: "/queue", desc: "View task queue" },
-            ].map((item) => (
+            {commands.map((item) => (
               <div
                 key={item.cmd}
                 className="flex items-center gap-2 text-xs bg-muted/50 rounded px-2 py-1.5"
@@ -579,7 +427,7 @@ export function TelegramSettings() {
                 <code className="font-mono font-medium text-primary">
                   {item.cmd}
                 </code>
-                <span className="text-muted-foreground">{item.desc}</span>
+                <span className="text-muted-foreground">{t(`commands.${item.key}`)}</span>
               </div>
             ))}
           </div>

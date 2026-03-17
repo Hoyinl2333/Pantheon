@@ -1,34 +1,12 @@
 import { NextRequest } from "next/server";
 import { spawn } from "child_process";
-import { existsSync, realpathSync } from "fs";
-import { homedir } from "os";
+import { existsSync } from "fs";
 import { resolve } from "path";
 import { registry } from "@/lib/providers";
+import { isPathAllowed } from "@/lib/path-security";
 
 // Allow long-running CLI invocations
 export const maxDuration = 300;
-
-/** Allowed root paths for cwd — same as /api/browse */
-const ALLOWED_ROOTS = [
-  homedir(),
-  "C:\\",
-  "D:\\",
-  "E:\\",
-  "F:\\",
-  "/home",
-  "/Users",
-  "/mnt",
-  "/opt",
-];
-
-function isPathAllowed(targetPath: string): boolean {
-  try {
-    const real = realpathSync(targetPath);
-    return ALLOWED_ROOTS.some((root) => real.startsWith(resolve(root)));
-  } catch {
-    return false;
-  }
-}
 
 const VALID_PERMISSION_MODES = ["default", "trust", "acceptEdits", "readOnly", "plan"] as const;
 
@@ -89,7 +67,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Build command using provider
-    const { binary, args, env } = provider.buildCommand(message.trim(), {
+    const { binary, args, env, stdinPrompt } = provider.buildCommand(message.trim(), {
       sessionId,
       cwd,
       permissionMode,
@@ -97,7 +75,7 @@ export async function POST(req: NextRequest) {
       model: model || undefined,
     });
 
-    console.log(`[Chat API] Provider: ${provider.displayName} | Spawning: ${binary} ${args.join(" ")}`);
+    console.log(`[Chat API] Provider: ${provider.displayName} | Spawning: ${binary} ${args.join(" ")}${stdinPrompt ? " (prompt via stdin)" : ""}`);
 
     const child = spawn(binary, args, {
       cwd: cwd || undefined,
@@ -106,7 +84,12 @@ export async function POST(req: NextRequest) {
       shell: process.platform === "win32", // Windows needs shell to resolve .cmd wrappers
       stdio: ["pipe", "pipe", "pipe"],
     });
-    child.stdin.end(); // close stdin so CLI doesn't wait for input
+
+    // If provider requests stdin-based prompt (Windows: avoids cmd.exe mangling CJK/pipes)
+    if (stdinPrompt) {
+      child.stdin.write(stdinPrompt, "utf-8");
+    }
+    child.stdin.end();
 
     // Kill child process if client disconnects — graceful then forced
     req.signal.addEventListener("abort", () => {

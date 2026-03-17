@@ -6,8 +6,10 @@ import { RefreshCw, Clock } from "lucide-react";
 import { SessionList } from "@/components/sessions/session-list";
 import { SessionDetailView } from "@/components/sessions/session-detail";
 import type { SessionsData } from "@/components/sessions/types";
+import { useTranslations } from "next-intl";
 
 function SessionsPageInner() {
+  const t = useTranslations("sessions");
   const [data, setData] = useState<SessionsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -48,16 +50,40 @@ function SessionsPageInner() {
   // Initial load
   useEffect(() => { loadData(); }, [loadData]);
 
-  // Auto-refresh every 10s when on list view
+  // Auto-refresh every 30s when on list view and tab is visible
   useEffect(() => {
     if (active) return;
-    const iv = setInterval(() => loadData(), 10000);
-    return () => clearInterval(iv);
+    let iv: ReturnType<typeof setInterval> | null = null;
+
+    const startPolling = () => {
+      if (iv) clearInterval(iv);
+      iv = setInterval(() => loadData(), 30000);
+    };
+    const stopPolling = () => {
+      if (iv) { clearInterval(iv); iv = null; }
+    };
+
+    const handleVisibility = () => {
+      if (document.hidden) {
+        stopPolling();
+      } else {
+        loadData(); // refresh on tab focus
+        startPolling();
+      }
+    };
+
+    startPolling();
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      stopPolling();
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
   }, [active, loadData]);
 
   if (loading) return <div className="flex items-center justify-center h-64"><RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
   if (active) return <SessionDetailView projectPath={active.project} sessionId={active.id} onBack={() => setActive(null)} />;
-  if (!data) return <div className="text-center py-16"><Clock className="h-12 w-12 mx-auto text-muted-foreground mb-4" /><h2 className="text-lg">No data</h2></div>;
+  if (!data) return <div className="text-center py-16"><Clock className="h-12 w-12 mx-auto text-muted-foreground mb-4" /><h2 className="text-lg">{t("noData")}</h2></div>;
   return <SessionList data={data} onRefresh={() => loadData(true)} refreshing={refreshing} onSelect={(p, id) => setActive({ project: p, id })} />;
 }
 

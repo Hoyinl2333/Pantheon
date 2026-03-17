@@ -9,7 +9,7 @@
 export type NodeStatus = "idle" | "queued" | "running" | "done" | "error" | "skipped";
 
 export interface ExecutionEvent {
-  type: "node-status" | "log" | "pipeline-done" | "pipeline-error";
+  type: "node-status" | "log" | "pipeline-done" | "pipeline-error" | "checkpoint-pending" | "checkpoint-resolved";
   nodeId?: string;
   status?: NodeStatus;
   message?: string;
@@ -147,6 +147,9 @@ export abstract class BaseExecutor<
   protected aborted = false;
   private checkpointCallback: CheckpointCallback | null = null;
 
+  // Human checkpoint support
+  private checkpointResolvers = new Map<string, (approved: boolean) => void>();
+
   constructor(
     nodes: TNode[],
     edges: TEdge[],
@@ -162,11 +165,44 @@ export abstract class BaseExecutor<
 
   abort(): void {
     this.aborted = true;
+    // Reject all pending checkpoints
+    for (const [nodeId, resolver] of this.checkpointResolvers) {
+      resolver(false);
+    }
+    this.checkpointResolvers.clear();
   }
 
   /** Register a callback for checkpoint persistence after each node */
   onCheckpoint(cb: CheckpointCallback): void {
     this.checkpointCallback = cb;
+  }
+
+  /** Override in subclass to determine if a node requires human checkpoint */
+  protected isCheckpointNode(_node: TNode): boolean {
+    return false;
+  }
+
+  /** Called by UI to approve or reject a checkpoint */
+  resolveCheckpoint(nodeId: string, approved: boolean): void {
+    const resolver = this.checkpointResolvers.get(nodeId);
+    if (resolver) {
+      resolver(approved);
+      this.checkpointResolvers.delete(nodeId);
+    }
+  }
+
+  /** Wait for human approval at a checkpoint node */
+  protected async waitForCheckpoint(nodeId: string): Promise<boolean> {
+    this.emit({
+      type: "checkpoint-pending",
+      nodeId,
+      status: "checkpoint" as NodeStatus,
+      message: `Waiting for human approval at node ${nodeId}`,
+    });
+
+    return new Promise<boolean>((resolve) => {
+      this.checkpointResolvers.set(nodeId, resolve);
+    });
   }
 
   async run(): Promise<void> {
@@ -278,6 +314,31 @@ export abstract class BaseExecutor<
 
     const node = nodeMap.get(nodeId);
     if (!node) return;
+
+    // Check for human checkpoint
+    if (this.isCheckpointNode(node)) {
+      this.emit({ type: "node-status", nodeId, status: "checkpoint" as NodeStatus });
+      const approved = await this.waitForCheckpoint(nodeId);
+      if (!approved) {
+        this.emit({
+          type: "log",
+          nodeId,
+          message: "Checkpoint rejected — skipping node and downstream",
+        });
+        skippedSet.add(nodeId);
+        this.emit({ type: "node-status", nodeId, status: "skipped" });
+        const downstream = getDownstream(nodeId, this.edges);
+        for (const dId of downstream) {
+          if (!completedSet.has(dId) && !errorSet.has(dId)) {
+            skippedSet.add(dId);
+            this.emit({ type: "node-status", nodeId: dId, status: "skipped" });
+          }
+        }
+        this.emit({ type: "checkpoint-resolved", nodeId, message: "rejected" });
+        return;
+      }
+      this.emit({ type: "checkpoint-resolved", nodeId, message: "approved" });
+    }
 
     this.emit({ type: "node-status", nodeId, status: "running" });
 

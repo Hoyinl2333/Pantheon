@@ -29,7 +29,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { provider, name, key, monthly_budget, notes } = body;
+    const { provider, name, key, base_url, monthly_budget, notes } = body;
 
     if (!provider || !name || !key) {
       return NextResponse.json(
@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
       provider: String(provider),
       name: String(name),
       key: String(key).trim(),
+      base_url: base_url != null ? String(base_url).trim() : undefined,
       monthly_budget: monthly_budget != null ? Number(monthly_budget) : null,
       notes: notes != null ? String(notes) : "",
     });
@@ -71,6 +72,8 @@ export async function PUT(req: NextRequest) {
     const updates: {
       name?: string;
       key?: string;
+      base_url?: string;
+      is_active?: number;
       monthly_budget?: number | null;
       notes?: string;
     } = {};
@@ -85,6 +88,8 @@ export async function PUT(req: NextRequest) {
       }
       updates.key = String(body.key).trim();
     }
+    if (body.base_url !== undefined) updates.base_url = String(body.base_url).trim();
+    if (body.is_active !== undefined) updates.is_active = body.is_active ? 1 : 0;
     if (body.monthly_budget !== undefined) {
       updates.monthly_budget =
         body.monthly_budget != null ? Number(body.monthly_budget) : null;

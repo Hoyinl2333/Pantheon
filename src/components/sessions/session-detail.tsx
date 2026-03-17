@@ -17,6 +17,7 @@ import { SessionAnalytics } from "./session-analytics";
 import type { SessionDetail, FilePreview } from "./types";
 import { useToast } from "@/components/toast";
 import { useFavorites } from "@/hooks/use-favorites";
+import { useTranslations } from "next-intl";
 
 export function SessionDetailView({ projectPath, sessionId, onBack }: {
   projectPath: string;
@@ -31,6 +32,7 @@ export function SessionDetailView({ projectPath, sessionId, onBack }: {
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [previewFile, setPreviewFile] = useState<FilePreview | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [convSearchInput, setConvSearchInput] = useState("");
   const [convSearch, setConvSearch] = useState("");
   const [convSearchMatch, setConvSearchMatch] = useState(0);
   const [idCopied, setIdCopied] = useState(false);
@@ -43,6 +45,7 @@ export function SessionDetailView({ projectPath, sessionId, onBack }: {
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { isFavorite, toggleFavorite } = useFavorites();
+  const t = useTranslations("sessionDetail");
   const router = useRouter();
 
   useEffect(() => {
@@ -75,7 +78,7 @@ export function SessionDetailView({ projectPath, sessionId, onBack }: {
         setPreviewLoading(false);
       })
       .catch(() => {
-        setPreviewFile({ path: filePath, fileName: filePath.split(/[/\\]/).pop() || "", ext: "", content: "Failed to load file", size: 0, lastModified: 0 });
+        setPreviewFile({ path: filePath, fileName: filePath.split(/[/\\]/).pop() || "", ext: "", content: t("loadFileFailed"), size: 0, lastModified: 0 });
         setPreviewLoading(false);
       });
   }, []);
@@ -122,7 +125,7 @@ export function SessionDetailView({ projectPath, sessionId, onBack }: {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    toast("Session exported as Markdown");
+    toast(t("exportedMarkdown"));
   }, [detail, toast]);
 
   // Compute search matches (must be before early returns to keep hook order stable)
@@ -156,8 +159,8 @@ export function SessionDetailView({ projectPath, sessionId, onBack }: {
   if (loading) return <div className="flex items-center justify-center h-64"><RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
   if (!detail) return (
     <div className="text-center py-16">
-      <p className="text-muted-foreground">Session not found</p>
-      <Button variant="outline" className="mt-4" onClick={onBack}><ArrowLeft className="h-4 w-4 mr-2" />Back</Button>
+      <p className="text-muted-foreground">{t("sessionNotFound")}</p>
+      <Button variant="outline" className="mt-4" onClick={onBack}><ArrowLeft className="h-4 w-4 mr-2" />{t("back")}</Button>
     </div>
   );
 
@@ -193,7 +196,7 @@ export function SessionDetailView({ projectPath, sessionId, onBack }: {
             size="sm"
             className="h-7 w-7 p-0"
             onClick={() => toggleFavorite(sessionId)}
-            title={isFavorite(sessionId) ? "Remove from favorites" : "Add to favorites"}
+            title={isFavorite(sessionId) ? t("removeFromFavorites") : t("addToFavorites")}
           >
             <Star className={`h-4 w-4 ${isFavorite(sessionId) ? "text-yellow-400" : "text-muted-foreground"}`} fill={isFavorite(sessionId) ? "currentColor" : "none"} />
           </Button>
@@ -203,7 +206,7 @@ export function SessionDetailView({ projectPath, sessionId, onBack }: {
               variant={viewMode === "card" ? "default" : "ghost"}
               size="sm" className="h-6 w-6 p-0"
               onClick={() => { setViewMode("card"); localStorage.setItem("session-view-mode", "card"); }}
-              title="Card View"
+              title={t("cardView")}
             >
               <Monitor className="h-3 w-3" />
             </Button>
@@ -211,36 +214,36 @@ export function SessionDetailView({ projectPath, sessionId, onBack }: {
               variant={viewMode === "terminal" ? "default" : "ghost"}
               size="sm" className="h-6 w-6 p-0"
               onClick={() => { setViewMode("terminal"); localStorage.setItem("session-view-mode", "terminal"); }}
-              title="Terminal View"
+              title={t("terminalView")}
             >
               <SquareTerminal className="h-3 w-3" />
             </Button>
           </div>
           <Button variant={showTools ? "default" : "outline"} size="sm" className="text-xs h-7" onClick={() => setShowTools(!showTools)}>
-            <Wrench className="h-3 w-3 mr-1" />Tools
+            <Wrench className="h-3 w-3 mr-1" />{t("tools")}
           </Button>
           <Button variant={showCheckpoints ? "default" : "outline"} size="sm" className="text-xs h-7" onClick={() => { setShowCheckpoints(!showCheckpoints); setShowFiles(false); setShowAnalytics(false); }}>
-            <MapPin className="h-3 w-3 mr-1" />Checkpoints ({detail.checkpoints.length})
+            <MapPin className="h-3 w-3 mr-1" />{t("checkpoints")} ({detail.checkpoints.length})
           </Button>
           {detail.contextFiles.length > 0 && (
             <Button variant={showFiles ? "default" : "outline"} size="sm" className="text-xs h-7" onClick={() => { setShowFiles(!showFiles); setShowCheckpoints(false); setShowAnalytics(false); }}>
-              <FileText className="h-3 w-3 mr-1" />Files ({detail.contextFiles.length})
+              <FileText className="h-3 w-3 mr-1" />{t("files")} ({detail.contextFiles.length})
             </Button>
           )}
           <Button variant={showAnalytics ? "default" : "outline"} size="sm" className="text-xs h-7" onClick={() => { setShowAnalytics(!showAnalytics); setShowCheckpoints(false); setShowFiles(false); }}>
-            <BarChart3 className="h-3 w-3 mr-1" />Analytics
+            <BarChart3 className="h-3 w-3 mr-1" />{t("analytics")}
           </Button>
           <Button
             variant="outline" size="sm" className="text-xs h-7"
             onClick={() => router.push(`/chat?session=${encodeURIComponent(projectPath)}|${sessionId}`)}
-            title="Open in Chat View"
+            title={t("openInChat")}
           >
-            <MessageCircle className="h-3 w-3 mr-1" />Chat
+            <MessageCircle className="h-3 w-3 mr-1" />{t("chat")}
           </Button>
-          <Button variant="outline" size="sm" className="text-xs h-7" onClick={exportAsMarkdown} title="Export as Markdown">
-            <Download className="h-3 w-3 mr-1" />Export
+          <Button variant="outline" size="sm" className="text-xs h-7" onClick={exportAsMarkdown} title={t("exportMarkdown")}>
+            <Download className="h-3 w-3 mr-1" />{t("export")}
           </Button>
-          <Badge variant="outline" className="text-xs">{visible.length} msgs</Badge>
+          <Badge variant="outline" className="text-xs">{visible.length} {t("msgs")}</Badge>
           <Badge variant="outline" className="text-xs font-mono">
             <DollarSign className="h-3 w-3" />{fmtCost(detail.estimatedCost)}
           </Badge>
@@ -255,9 +258,20 @@ export function SessionDetailView({ projectPath, sessionId, onBack }: {
         <Search className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
         <input
           type="text"
-          placeholder="Search in conversation..."
-          value={convSearch}
-          onChange={(e) => { setConvSearch(e.target.value); setConvSearchMatch(0); }}
+          placeholder={t("searchPlaceholder")}
+          value={convSearchInput}
+          onChange={(e) => setConvSearchInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              setConvSearch(convSearchInput);
+              setConvSearchMatch(0);
+            }
+            if (e.key === "Escape") {
+              setConvSearchInput("");
+              setConvSearch("");
+              setConvSearchMatch(0);
+            }
+          }}
           className="flex-1 bg-transparent text-sm focus:outline-none placeholder:text-muted-foreground/60"
         />
         {convSearchLower && (
@@ -279,7 +293,7 @@ export function SessionDetailView({ projectPath, sessionId, onBack }: {
             >
               <ChevronsDown className="h-3 w-3" />
             </Button>
-            <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => { setConvSearch(""); setConvSearchMatch(0); }}>
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => { setConvSearchInput(""); setConvSearch(""); setConvSearchMatch(0); }}>
               <X className="h-3 w-3" />
             </Button>
           </div>
@@ -300,7 +314,7 @@ export function SessionDetailView({ projectPath, sessionId, onBack }: {
           <div className="w-64 border-r overflow-auto bg-muted/5 flex-shrink-0">
             {showCheckpoints && (
               <div className="p-2 space-y-1">
-                <div className="text-xs font-medium text-muted-foreground px-2 py-1">User Messages (Checkpoints)</div>
+                <div className="text-xs font-medium text-muted-foreground px-2 py-1">{t("userCheckpoints")}</div>
                 {detail.checkpoints.map((cp, i) => (
                   <button key={i} className="w-full text-left px-2 py-1.5 rounded text-xs hover:bg-muted transition-colors"
                     onClick={() => scrollToCheckpoint(cp.index)}>
@@ -312,7 +326,7 @@ export function SessionDetailView({ projectPath, sessionId, onBack }: {
             )}
             {showFiles && (
               <div className="p-2 space-y-1">
-                <div className="text-xs font-medium text-muted-foreground px-2 py-1">Referenced Files</div>
+                <div className="text-xs font-medium text-muted-foreground px-2 py-1">{t("referencedFiles")}</div>
                 {detail.contextFiles.map((f, i) => (
                   <button
                     key={i}

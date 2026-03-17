@@ -550,7 +550,7 @@ export function WorkspacePanel({ open, onOpenChange, locale }: WorkspacePanelPro
         title={
           confirmAction?.type === "archive"
             ? (isZh ? "确认归档" : "Confirm Archive")
-            : (isZh ? "确认移除" : "Confirm Remove")
+            : (isZh ? "确认删除" : "Confirm Delete")
         }
         message={
           confirmAction?.type === "archive"
@@ -558,13 +558,13 @@ export function WorkspacePanel({ open, onOpenChange, locale }: WorkspacePanelPro
                 ? `将 "${confirmAction?.ws.name}" 标记为已归档？`
                 : `Mark "${confirmAction?.ws.name}" as archived?`)
             : (isZh
-                ? `从索引中移除 "${confirmAction?.ws.name}"？文件不会被删除。`
-                : `Remove "${confirmAction?.ws.name}" from index? Files will not be deleted.`)
+                ? `确认删除工作区 "${confirmAction?.ws.name}"？`
+                : `Delete workspace "${confirmAction?.ws.name}"?`)
         }
         confirmLabel={
           confirmAction?.type === "archive"
             ? (isZh ? "归档" : "Archive")
-            : (isZh ? "移除" : "Remove")
+            : (isZh ? "删除" : "Delete")
         }
         destructive={confirmAction?.type === "delete"}
         onConfirm={() => {

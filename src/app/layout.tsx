@@ -6,6 +6,8 @@ import { CommandPalette } from "@/components/command-palette";
 import { PwaRegister } from "@/components/pwa-register";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 import { Providers } from "@/components/providers";
+import { ErrorBoundary } from "@/components/error-boundary";
+import { NavProgress } from "@/components/nav-progress";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,7 +30,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#7c3aed" />
@@ -46,6 +48,10 @@ export default function RootLayout({
                   if (theme === 'dark' || (!theme && prefersDark)) {
                     document.documentElement.classList.add('dark');
                   }
+                  var locale = localStorage.getItem('locale');
+                  if (locale) {
+                    document.documentElement.lang = locale;
+                  }
                 } catch(e) {}
               })();
             `,
@@ -56,6 +62,14 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <Providers>
+          {/* Skip to main content link for keyboard/screen-reader users */}
+          <a
+            href="#main-content"
+            className="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:top-2 focus:left-2 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:text-sm"
+          >
+            Skip to main content
+          </a>
+          <NavProgress />
           <div className="flex h-dvh">
             <SidebarNav />
             <CommandPalette />
@@ -63,8 +77,14 @@ export default function RootLayout({
             <PwaInstallPrompt />
 
             {/* Main Content */}
-            <main className="flex-1 overflow-auto p-3 sm:p-4 lg:p-6 pt-14 sm:pt-14 lg:pt-6">
-              {children}
+            <main
+              id="main-content"
+              role="main"
+              className="flex-1 overflow-auto p-3 sm:p-4 lg:p-6 pt-14 sm:pt-14 lg:pt-6"
+            >
+              <ErrorBoundary>
+                {children}
+              </ErrorBoundary>
             </main>
           </div>
         </Providers>

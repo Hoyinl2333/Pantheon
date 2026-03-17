@@ -47,10 +47,15 @@ export interface ArisConfig {
   maxTotalGpuHours: number;
   venue: "ICLR" | "NeurIPS" | "ICML" | "AAAI" | "ACL";
   feishuWebhook?: string;
+  /** Notification settings */
+  notifyEnabled?: boolean;
+  notifyChannel?: "telegram" | "feishu" | "both";
+  notifyTelegramChatId?: string;
+  notifyFeishuChatId?: string;
 }
 
 /** Status of a node in a running pipeline */
-export type NodeStatus = "idle" | "queued" | "running" | "done" | "error" | "skipped";
+export type NodeStatus = "idle" | "queued" | "running" | "done" | "error" | "skipped" | "checkpoint";
 
 /** A node in a pipeline (wraps a skill reference + position) */
 export interface PipelineNode {
@@ -60,6 +65,8 @@ export interface PipelineNode {
   status: NodeStatus;
   paramValues: Record<string, string>;
   notes: string;
+  /** If true, execution pauses before this node and waits for user confirmation */
+  checkpoint?: boolean;
 }
 
 /** An edge between pipeline nodes */

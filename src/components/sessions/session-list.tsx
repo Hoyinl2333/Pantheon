@@ -176,7 +176,7 @@ export function SessionList({ data, onSelect, onRefresh, refreshing }: {
         {[
           { icon: FolderOpen, label: "Projects", value: data.projects.length },
           { icon: Hash, label: "Sessions", value: data.totalSessions },
-          { icon: DollarSign, label: "Est. Cost", value: fmtCost(data.recentSessions.reduce((s, x) => s + x.estimatedCost, 0)) },
+          { icon: DollarSign, label: "Est. Cost", value: fmtCost(data.recentSessions.reduce((acc, x) => acc + x.estimatedCost, 0)) },
           { icon: Clock, label: "Showing", value: sessions.length },
         ].map(({ icon: Icon, label, value }) => (
           <Card key={label}>

@@ -44,7 +44,7 @@ export class CodexProvider implements CliProvider {
       streaming: true,
       thinking: false,
       toolUse: true,
-      models: ["o4-mini", "o3", "gpt-4.1"],
+      models: ["o3-pro", "o3", "o4-mini", "o1", "o1-mini", "gpt-5.2", "gpt-5.3", "gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano", "gpt-4o", "gpt-4o-mini", "codex-mini-latest"],
     };
   }
 

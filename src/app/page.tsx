@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,11 +8,18 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Users, ListTodo, CheckCircle, FolderOpen, Cpu, Clock,
   ArrowRight, Wrench, FileEdit, Coins, Zap, Activity, Star,
+  KeyRound, AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";
 import { fmtCost, fmtTokens, timeAgo, shortModel } from "@/lib/format-utils";
-import { AreaChart, Area, ResponsiveContainer, Tooltip } from "recharts";
+import dynamic from "next/dynamic";
 import { useFavorites } from "@/hooks/use-favorites";
+
+const HomeSparkline = dynamic(
+  () => import("@/components/home-sparkline").then((m) => ({ default: m.HomeSparkline })),
+  { ssr: false, loading: () => <Skeleton className="h-[60px] w-full" /> }
+);
+import { useTranslations } from "next-intl";
 
 // ---- Types ----
 
@@ -63,19 +70,15 @@ interface TokensData {
   byDate: Record<string, { input: number; output: number; cost: number; sessions: number }>;
 }
 
-// ---- Helpers ----
-
-// Custom Tooltip for sparkline
-function SparklineTooltip({ active, payload }: any) {
-  if (!active || !payload || !payload.length) return null;
-  const data = payload[0].payload;
-  return (
-    <div className="bg-card border border-border rounded-md px-2 py-1 shadow-md">
-      <p className="text-xs font-mono">{data.date}</p>
-      <p className="text-xs font-mono font-bold">{fmtCost(data.cost)}</p>
-    </div>
-  );
+interface ApiKeySummary {
+  total: number;
+  active: number;
+  abnormal: number;
+  totalBalance: number;
+  balanceCurrency: string;
 }
+
+// ---- Helpers ----
 
 type SessionStatus = "reading" | "thinking" | "writing" | "waiting" | "completed" | "error" | "idle";
 
@@ -92,52 +95,119 @@ const STATUS_DOTS: Record<SessionStatus, string> = {
 // ---- Main ----
 
 export default function HomePage() {
+  const t = useTranslations("overview");
+  const tNav = useTranslations("nav");
+  const tc = useTranslations("common");
   const [teams, setTeams] = useState<TeamSummary | null>(null);
   const [processes, setProcesses] = useState<ProcessInfo[]>([]);
   const [sessions, setSessions] = useState<SessionsData | null>(null);
   const [tokensData, setTokensData] = useState<TokensData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [apiKeySummary, setApiKeySummary] = useState<ApiKeySummary | null>(null);
+  const [balanceLoading, setBalanceLoading] = useState(false);
+  // Per-section loading states for progressive rendering (Fix 5)
+  const [teamsLoaded, setTeamsLoaded] = useState(false);
+  const [processesLoaded, setProcessesLoaded] = useState(false);
+  const [sessionsLoaded, setSessionsLoaded] = useState(false);
+  const [tokensLoaded, setTokensLoaded] = useState(false);
+  const [apiKeysLoaded, setApiKeysLoaded] = useState(false);
   const [providerFilter, setProviderFilter] = useState<ProviderFilter>("all");
   const { isFavorite } = useFavorites();
 
+  // Primary data fetches — each resolves independently (Fix 5: progressive rendering)
   useEffect(() => {
-    Promise.all([
-      fetch("/api/teams").then((r) => r.json()).then(setTeams).catch(() => {}),
-      fetch("/api/processes").then((r) => r.json()).then((d) => setProcesses(d.processes || [])).catch(() => {}),
-      fetch("/api/sessions").then((r) => r.json()).then(setSessions).catch(() => {}),
-      fetch("/api/tokens").then((r) => r.json()).then(setTokensData).catch(() => {}),
-    ]).finally(() => setLoading(false));
+    fetch("/api/teams").then((r) => r.json()).then(setTeams).catch(() => {}).finally(() => setTeamsLoaded(true));
+    fetch("/api/processes").then((r) => r.json()).then((d) => setProcesses(d.processes || [])).catch(() => {}).finally(() => setProcessesLoaded(true));
+    fetch("/api/sessions").then((r) => r.json()).then(setSessions).catch(() => {}).finally(() => setSessionsLoaded(true));
+    fetch("/api/tokens").then((r) => r.json()).then(setTokensData).catch(() => {}).finally(() => setTokensLoaded(true));
+    // Fetch API key metadata (without balances — those are deferred)
+    fetch("/api/plugins/api-management/keys")
+      .then((r) => r.json())
+      .then((data) => {
+        const keys: { id: string; is_active: number; last_checked_valid?: boolean }[] = data.keys || [];
+        const total = keys.length;
+        const active = keys.filter((k) => k.is_active === 1).length;
+        const abnormal = keys.filter((k) => k.is_active === 1 && k.last_checked_valid === false).length;
+        setApiKeySummary({ total, active, abnormal, totalBalance: 0, balanceCurrency: "USD" });
+      })
+      .catch(() => {})
+      .finally(() => setApiKeysLoaded(true));
   }, []);
 
+  // Deferred balance fetch — runs AFTER apiKeySummary is available (Fix 3)
+  useEffect(() => {
+    if (!apiKeySummary || apiKeySummary.active === 0) return;
+    let cancelled = false;
+    setBalanceLoading(true);
+
+    fetch("/api/plugins/api-management/keys")
+      .then((r) => r.json())
+      .then(async (data) => {
+        const keys: { id: string; is_active: number }[] = data.keys || [];
+        const activeKeys = keys.filter((k) => k.is_active === 1);
+        if (activeKeys.length === 0) return;
+        const results = await Promise.allSettled(
+          activeKeys.map((k) =>
+            fetch(`/api/plugins/api-management/balance?id=${k.id}`)
+              .then((r) => r.json())
+              .then((d) => d.result as { valid: boolean; balance: { amount: number; currency: string } | null } | undefined)
+          )
+        );
+        if (cancelled) return;
+        let totalBalance = 0;
+        let currency = "USD";
+        for (const r of results) {
+          if (r.status === "fulfilled" && r.value?.valid && r.value.balance) {
+            totalBalance += r.value.balance.amount;
+            currency = r.value.balance.currency;
+          }
+        }
+        setApiKeySummary((prev) =>
+          prev ? { ...prev, totalBalance, balanceCurrency: currency } : prev
+        );
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setBalanceLoading(false); });
+
+    return () => { cancelled = true; };
+  }, [apiKeySummary?.active]); // only re-run when active count changes
+
+  // Derived: treat page as initially loaded once the fast endpoints resolve
+  const loading = !teamsLoaded || !processesLoaded || !sessionsLoaded;
+
   const totalTeams = teams?.teams.length || 0;
-  const totalAgents = teams?.teams.reduce((s, t) => s + t.memberCount, 0) || 0;
-  const totalTasks = teams?.teams.reduce((s, t) => s + t.taskCount, 0) || 0;
-  const completedTasks = teams?.teams.reduce((s, t) => s + t.completedTasks, 0) || 0;
+  const totalAgents = useMemo(() => teams?.teams.reduce((s, t) => s + t.memberCount, 0) || 0, [teams]);
+  const totalTasks = useMemo(() => teams?.teams.reduce((s, t) => s + t.taskCount, 0) || 0, [teams]);
+  const completedTasks = useMemo(() => teams?.teams.reduce((s, t) => s + t.completedTasks, 0) || 0, [teams]);
 
   // Apply provider filter to sessions
-  const allSessions = sessions?.recentSessions || [];
-  const filteredSessions = providerFilter === "all"
-    ? allSessions
-    : allSessions.filter((s) => s.provider === providerFilter);
+  const allSessions = useMemo(() => sessions?.recentSessions || [], [sessions]);
+  const filteredSessions = useMemo(
+    () => providerFilter === "all"
+      ? allSessions
+      : allSessions.filter((s) => s.provider === providerFilter),
+    [allSessions, providerFilter]
+  );
 
-  const recentSessions = filteredSessions.slice(0, 5);
-  const totalCost = filteredSessions.reduce((s, x) => s + x.estimatedCost, 0);
-  const totalInputTokens = filteredSessions.reduce((s, x) => s + x.totalInputTokens, 0);
-  const totalOutputTokens = filteredSessions.reduce((s, x) => s + x.totalOutputTokens, 0);
+  const recentSessions = useMemo(() => filteredSessions.slice(0, 5), [filteredSessions]);
+  const { totalCost, totalInputTokens, totalOutputTokens } = useMemo(() => ({
+    totalCost: filteredSessions.reduce((s, x) => s + x.estimatedCost, 0),
+    totalInputTokens: filteredSessions.reduce((s, x) => s + x.totalInputTokens, 0),
+    totalOutputTokens: filteredSessions.reduce((s, x) => s + x.totalOutputTokens, 0),
+  }), [filteredSessions]);
 
   // Prepare sparkline data (last 7 days)
-  const sparklineData = tokensData
+  const sparklineData = useMemo(() => tokensData
     ? Object.entries(tokensData.byDate)
         .filter(([k]) => k !== "unknown")
         .sort((a, b) => a[0].localeCompare(b[0]))
         .slice(-7)
         .map(([date, stats]) => ({ date, cost: stats.cost }))
-    : [];
+    : [], [tokensData]);
 
   if (loading) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold">Overview</h1>
+        <h1 className="text-2xl font-bold">{t("title")}</h1>
 
         {/* Stats Cards Skeleton */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
@@ -238,7 +308,7 @@ export default function HomePage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h1 className="text-2xl font-bold">Overview</h1>
+        <h1 className="text-2xl font-bold">{t("title")}</h1>
         <div className="flex items-center gap-1 bg-muted/50 rounded-full p-0.5">
           {(["all", "claude", "codex"] as const).map((opt) => (
             <button
@@ -250,7 +320,7 @@ export default function HomePage() {
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {opt === "all" ? "All" : opt === "claude" ? "Claude" : "Codex"}
+              {opt === "all" ? t("filterAll") : opt === "claude" ? t("filterClaude") : t("filterCodex")}
             </button>
           ))}
         </div>
@@ -261,7 +331,7 @@ export default function HomePage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
-              <FolderOpen className="h-4 w-4" /> Teams
+              <FolderOpen className="h-4 w-4" /> {t("stats.teams")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -271,7 +341,7 @@ export default function HomePage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
-              <Users className="h-4 w-4" /> Agents
+              <Users className="h-4 w-4" /> {t("stats.agents")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -281,7 +351,7 @@ export default function HomePage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
-              <ListTodo className="h-4 w-4" /> Tasks
+              <ListTodo className="h-4 w-4" /> {t("stats.tasks")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -291,7 +361,7 @@ export default function HomePage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
-              <CheckCircle className="h-4 w-4" /> Completed
+              <CheckCircle className="h-4 w-4" /> {t("stats.completed")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -301,7 +371,7 @@ export default function HomePage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
-              <Cpu className="h-4 w-4" /> Processes
+              <Cpu className="h-4 w-4" /> {t("stats.processes")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -311,7 +381,7 @@ export default function HomePage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
-              <Coins className="h-4 w-4" /> Total Cost
+              <Coins className="h-4 w-4" /> {t("stats.totalCost")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -326,11 +396,11 @@ export default function HomePage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2">
-                <Activity className="h-4 w-4" /> Active Processes
+                <Activity className="h-4 w-4" /> {t("activeProcesses")}
               </CardTitle>
               {processes.length > 0 && (
                 <Badge variant="secondary" className="text-xs">
-                  <Zap className="h-3 w-3 mr-1" />{processes.length} running
+                  <Zap className="h-3 w-3 mr-1" />{processes.length} {t("running", { count: processes.length })}
                 </Badge>
               )}
             </div>
@@ -350,7 +420,7 @@ export default function HomePage() {
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground text-center py-4">No active Claude processes detected</p>
+              <p className="text-sm text-muted-foreground text-center py-4">{t("noProcesses")}</p>
             )}
           </CardContent>
         </Card>
@@ -359,51 +429,38 @@ export default function HomePage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
-              <Coins className="h-4 w-4" /> Token Usage Summary
+              <Coins className="h-4 w-4" /> {t("tokenUsageSummary")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-3 gap-4">
               <div className="text-center">
-                <div className="text-xs text-muted-foreground mb-1">Input Tokens</div>
+                <div className="text-xs text-muted-foreground mb-1">{t("inputTokens")}</div>
                 <div className="text-lg font-bold font-mono">{fmtTokens(totalInputTokens)}</div>
               </div>
               <div className="text-center">
-                <div className="text-xs text-muted-foreground mb-1">Output Tokens</div>
+                <div className="text-xs text-muted-foreground mb-1">{t("outputTokens")}</div>
                 <div className="text-lg font-bold font-mono">{fmtTokens(totalOutputTokens)}</div>
               </div>
               <div className="text-center">
-                <div className="text-xs text-muted-foreground mb-1">Total Sessions</div>
+                <div className="text-xs text-muted-foreground mb-1">{t("totalSessions")}</div>
                 <div className="text-lg font-bold font-mono">{filteredSessions.length}</div>
               </div>
             </div>
-            {sparklineData.length > 0 && (
+            {!tokensLoaded ? (
               <div className="mt-4">
-                <div className="text-xs text-muted-foreground mb-1">Daily Cost Trend (7 days)</div>
-                <ResponsiveContainer width="100%" height={60}>
-                  <AreaChart data={sparklineData} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="miniCostGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.4} />
-                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <Tooltip content={<SparklineTooltip />} />
-                    <Area
-                      type="monotone"
-                      dataKey="cost"
-                      stroke="hsl(var(--primary))"
-                      strokeWidth={1.5}
-                      fill="url(#miniCostGradient)"
-                      isAnimationActive={false}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
+                <Skeleton className="h-3 w-32 mb-1" />
+                <Skeleton className="h-[60px] w-full" />
               </div>
-            )}
+            ) : sparklineData.length > 0 ? (
+              <div className="mt-4">
+                <div className="text-xs text-muted-foreground mb-1">{t("dailyCostTrend7d")}</div>
+                <HomeSparkline data={sparklineData} />
+              </div>
+            ) : null}
             <div className="mt-4 pt-3 border-t">
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Estimated Total Cost</span>
+                <span className="text-muted-foreground">{t("estimatedTotalCost")}</span>
                 <span className="font-bold font-mono">{fmtCost(totalCost)}</span>
               </div>
             </div>
@@ -411,16 +468,74 @@ export default function HomePage() {
         </Card>
       </div>
 
+      {/* API Key Summary */}
+      <Link href="/plugins/api-management" className="block">
+        <Card className="hover:bg-muted/30 transition-colors cursor-pointer">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2">
+                <KeyRound className="h-4 w-4" /> {t("apiKeySummary")}
+              </CardTitle>
+              <Button variant="ghost" size="sm" className="text-xs pointer-events-none">
+                {t("apiKeysManage")} <ArrowRight className="h-3 w-3 ml-1" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {!apiKeysLoaded ? (
+              <div className="grid grid-cols-3 gap-4">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="text-center">
+                    <Skeleton className="h-3 w-16 mx-auto mb-1" />
+                    <Skeleton className="h-8 w-20 mx-auto" />
+                  </div>
+                ))}
+              </div>
+            ) : apiKeySummary && apiKeySummary.total > 0 ? (
+              <div className="grid grid-cols-3 gap-4">
+                <div className="text-center">
+                  <div className="text-xs text-muted-foreground mb-1">{t("apiKeysActive")}</div>
+                  <div className="text-2xl font-bold font-mono text-green-500">{apiKeySummary.active}</div>
+                  <div className="text-xs text-muted-foreground">/ {apiKeySummary.total}</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-xs text-muted-foreground mb-1">{t("apiKeysTotalBalance")}</div>
+                  {balanceLoading ? (
+                    <Skeleton className="h-8 w-20 mx-auto" />
+                  ) : (
+                    <div className="text-2xl font-bold font-mono">
+                      {apiKeySummary.totalBalance > 0
+                        ? `${apiKeySummary.balanceCurrency === "USD" ? "$" : "¥"}${apiKeySummary.totalBalance.toFixed(2)}`
+                        : "N/A"}
+                    </div>
+                  )}
+                  <div className="text-xs text-muted-foreground">{apiKeySummary.balanceCurrency}</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-xs text-muted-foreground mb-1">{t("apiKeysAbnormal")}</div>
+                  <div className={`text-2xl font-bold font-mono ${apiKeySummary.abnormal > 0 ? "text-red-500" : "text-green-500"}`}>
+                    {apiKeySummary.abnormal > 0 && <AlertTriangle className="h-4 w-4 inline mr-1" />}
+                    {apiKeySummary.abnormal}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">{t("apiKeysNone")}</p>
+            )}
+          </CardContent>
+        </Card>
+      </Link>
+
       {/* Recent Sessions */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="text-base flex items-center gap-2">
-              <Clock className="h-4 w-4" /> Recent Sessions
+              <Clock className="h-4 w-4" /> {t("recentSessions")}
             </CardTitle>
             <Link href="/sessions">
               <Button variant="ghost" size="sm" className="text-xs">
-                View all <ArrowRight className="h-3 w-3 ml-1" />
+                {tc("viewAll")} <ArrowRight className="h-3 w-3 ml-1" />
               </Button>
             </Link>
           </div>
@@ -453,7 +568,7 @@ export default function HomePage() {
               })}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground text-center py-4">No sessions found</p>
+            <p className="text-sm text-muted-foreground text-center py-4">{t("noSessions")}</p>
           )}
         </CardContent>
       </Card>
@@ -463,28 +578,28 @@ export default function HomePage() {
         {/* Quick Actions */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Quick Actions</CardTitle>
+            <CardTitle className="text-base">{t("quickActions")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-2">
               <Link href="/sessions">
                 <Button variant="outline" className="w-full justify-start gap-2 h-10">
-                  <Clock className="h-4 w-4" /> Sessions
+                  <Clock className="h-4 w-4" /> {tNav("sessions")}
                 </Button>
               </Link>
               <Link href="/toolbox">
                 <Button variant="outline" className="w-full justify-start gap-2 h-10">
-                  <Wrench className="h-4 w-4" /> Toolbox
+                  <Wrench className="h-4 w-4" /> {tNav("toolbox")}
                 </Button>
               </Link>
               <Link href="/editor">
                 <Button variant="outline" className="w-full justify-start gap-2 h-10">
-                  <FileEdit className="h-4 w-4" /> Instructions
+                  <FileEdit className="h-4 w-4" /> {tNav("instructions")}
                 </Button>
               </Link>
               <Link href="/tokens">
                 <Button variant="outline" className="w-full justify-start gap-2 h-10">
-                  <Coins className="h-4 w-4" /> Tokens
+                  <Coins className="h-4 w-4" /> {tNav("tokens")}
                 </Button>
               </Link>
             </div>
@@ -496,11 +611,11 @@ export default function HomePage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2">
-                <Users className="h-4 w-4" /> Active Teams
+                <Users className="h-4 w-4" /> {t("activeTeams")}
               </CardTitle>
               <Link href="/team">
                 <Button variant="ghost" size="sm" className="text-xs">
-                  View all <ArrowRight className="h-3 w-3 ml-1" />
+                  {tc("viewAll")} <ArrowRight className="h-3 w-3 ml-1" />
                 </Button>
               </Link>
             </div>
@@ -513,17 +628,17 @@ export default function HomePage() {
                     <div className="flex items-center justify-between px-3 py-2 rounded-md hover:bg-muted/50 transition-colors">
                       <div>
                         <div className="text-sm font-medium">{team.name}</div>
-                        <div className="text-xs text-muted-foreground">{team.memberCount} agents</div>
+                        <div className="text-xs text-muted-foreground">{t("agentsCount", { count: team.memberCount })}</div>
                       </div>
                       <Badge variant="outline" className="text-xs">
-                        {team.completedTasks}/{team.taskCount} tasks
+                        {t("tasksCount", { completed: team.completedTasks, total: team.taskCount })}
                       </Badge>
                     </div>
                   </Link>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground text-center py-4">No active teams</p>
+              <p className="text-sm text-muted-foreground text-center py-4">{t("noTeams")}</p>
             )}
           </CardContent>
         </Card>
