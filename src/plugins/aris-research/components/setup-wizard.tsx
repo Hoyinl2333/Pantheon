@@ -357,8 +357,9 @@ export function SetupWizard({
 
   // --- Render ---
   return (
-    <div className="w-full min-h-full overflow-y-auto bg-background">
-      <div className="max-w-[800px] mx-auto px-4 py-8 space-y-10">
+    <div className="w-full h-full flex flex-col bg-background">
+      <div className="flex-1 overflow-y-auto min-h-0">
+      <div className="max-w-[800px] mx-auto px-4 py-6 pb-4 space-y-8">
         {/* Header */}
         <div className="text-center space-y-2">
           <h1 className="text-2xl font-bold tracking-tight">
@@ -745,7 +746,12 @@ export function SetupWizard({
         {/* ============================================================= */}
         {/* Bottom Action Bar */}
         {/* ============================================================= */}
-        <div className="sticky bottom-0 bg-background/95 backdrop-blur border-t -mx-4 px-4 py-3 flex items-center justify-between">
+      </div>
+      </div>
+
+      {/* Bottom Action Bar — outside scrollable area */}
+      <div className="shrink-0 border-t bg-background px-4 py-3">
+        <div className="max-w-[800px] mx-auto flex items-center justify-between">
           <Button variant="ghost" onClick={onBack} className="gap-1.5">
             <ArrowLeft className="h-4 w-4" />
             {isZh ? "返回" : "Cancel"}

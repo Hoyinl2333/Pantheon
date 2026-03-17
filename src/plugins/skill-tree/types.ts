@@ -19,7 +19,8 @@ export type SkillCategory =
   | "management"   // API, agents, settings
   | "creative"     // Content creation, design
   | "integration"  // External services, bots
-  | "advanced";    // Power user, experimental
+  | "advanced"     // Power user, experimental
+  | "other";       // Miscellaneous
 
 /** Implementation type — what backs this skill */
 export type ImplType =
@@ -57,6 +58,12 @@ export interface SkillTreeNode {
   tags?: string[];
   /** Setup instructions or link */
   setupGuide?: string;
+  /** Step-by-step setup instructions */
+  setupSteps?: string[];
+  /** Command to verify if configured (returns exit 0 = ok) */
+  detectCommand?: string;
+  /** What to check in the UI to verify (e.g. "settings.json has mcpServers.codex") */
+  detectHint?: string;
   /** Related SCC page route */
   pageRoute?: string;
 }
