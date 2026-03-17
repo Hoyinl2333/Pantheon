@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -20,8 +19,6 @@ import {
   Trash2,
   Eye,
   RefreshCw,
-  ChevronDown,
-  ChevronUp,
 } from "lucide-react";
 
 interface ArisSession {
@@ -68,7 +65,7 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-function LogViewer({ logFile, isZh }: { logFile: string; isZh: boolean }) {
+function LogViewer({ logFile }: { logFile: string }) {
   const [content, setContent] = useState("Loading...");
   const [autoRefresh, setAutoRefresh] = useState(true);
 
@@ -93,45 +90,42 @@ function LogViewer({ logFile, isZh }: { logFile: string; isZh: boolean }) {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-[11px] text-muted-foreground font-mono">{logFile}</span>
+        <span className="text-[11px] text-muted-foreground font-mono truncate">{logFile}</span>
         <Button size="sm" variant="ghost" className="h-6 px-2" onClick={fetchLog}>
           <RefreshCw className="h-3 w-3" />
         </Button>
       </div>
-      <pre className="bg-zinc-950 text-zinc-200 rounded-lg p-4 text-xs font-mono overflow-auto max-h-[60vh] whitespace-pre-wrap leading-relaxed">
+      <pre className="bg-zinc-950 text-zinc-200 rounded-lg p-4 text-xs font-mono overflow-auto max-h-[50vh] whitespace-pre-wrap leading-relaxed">
         {content}
       </pre>
     </div>
   );
 }
 
-interface SessionsPanelProps {
+interface SessionsButtonProps {
   isZh: boolean;
 }
 
-export function SessionsPanel({ isZh }: SessionsPanelProps) {
+export function SessionsButton({ isZh }: SessionsButtonProps) {
+  const [open, setOpen] = useState(false);
   const [sessions, setSessions] = useState<ArisSession[]>([]);
-  const [loading, setLoading] = useState(true);
   const [viewingLog, setViewingLog] = useState<ArisSession | null>(null);
-  const [collapsed, setCollapsed] = useState(true);
 
   const fetchSessions = useCallback(async () => {
     try {
       const res = await fetch("/api/plugins/aris-research/sessions");
       const data = await res.json();
       setSessions(data.sessions ?? []);
-    } catch {
-      // ignore
-    } finally {
-      setLoading(false);
-    }
+    } catch { /* ignore */ }
   }, []);
 
   useEffect(() => {
-    fetchSessions();
-    const interval = setInterval(fetchSessions, 5000);
-    return () => clearInterval(interval);
-  }, [fetchSessions]);
+    if (open) {
+      fetchSessions();
+      const interval = setInterval(fetchSessions, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [open, fetchSessions]);
 
   const handleDelete = async (id: string) => {
     await fetch(`/api/plugins/aris-research/sessions?id=${id}`, { method: "DELETE" });
@@ -140,102 +134,91 @@ export function SessionsPanel({ isZh }: SessionsPanelProps) {
 
   const runningCount = sessions.filter((s) => s.status === "running").length;
 
-  if (loading) return null;
-
-  // Auto-expand when there are running sessions
-  const hasRunning = runningCount > 0;
-
   return (
     <>
-      <Card>
-        <CardHeader
-          className="py-2.5 px-4 cursor-pointer select-none hover:bg-accent/30 transition-colors"
-          onClick={() => setCollapsed((v) => !v)}
-        >
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold flex items-center gap-2">
+      <Button
+        size="sm"
+        variant="outline"
+        className="h-7 text-xs gap-1.5"
+        onClick={() => setOpen(true)}
+      >
+        <Monitor className="h-3 w-3" />
+        <span className="hidden sm:inline">{isZh ? "会话" : "Sessions"}</span>
+        {runningCount > 0 && (
+          <Badge className="bg-amber-500/20 text-amber-600 border-0 text-[9px] px-1 py-0 ml-0.5">
+            {runningCount}
+          </Badge>
+        )}
+      </Button>
+
+      {/* Sessions list dialog */}
+      <Dialog open={open && !viewingLog} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-2xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
               <Monitor className="h-4 w-4" />
               {isZh ? "运行会话" : "Sessions"}
               {sessions.length > 0 && (
-                <Badge variant="secondary" className="text-[9px] px-1 py-0">{sessions.length}</Badge>
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{sessions.length}</Badge>
               )}
-              {hasRunning && (
-                <Badge className="bg-amber-500/20 text-amber-700 dark:text-amber-400 border-0 text-[10px] px-1.5 py-0">
-                  {runningCount} {isZh ? "运行中" : "running"}
-                </Badge>
-              )}
-            </h3>
-            <div className="flex items-center gap-1">
-              <Button size="sm" variant="ghost" className="h-6 px-2" onClick={(e) => { e.stopPropagation(); fetchSessions(); }}>
+              <Button size="sm" variant="ghost" className="h-6 px-2 ml-auto" onClick={fetchSessions}>
                 <RefreshCw className="h-3 w-3" />
               </Button>
-              {collapsed ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />}
-            </div>
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+            {sessions.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-8">
+                {isZh ? "暂无会话。启动一个技能后会在这里显示。" : "No sessions yet. Launch a skill to see it here."}
+              </p>
+            )}
+            {sessions.map((session) => {
+              const cfg = STATUS_CONFIG[session.status] ?? STATUS_CONFIG.unknown;
+              return (
+                <div
+                  key={session.id}
+                  className="flex items-center gap-3 p-3 rounded-lg border hover:bg-accent/50 transition-colors group"
+                >
+                  {cfg.icon}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-medium">{session.skill}</span>
+                      <Badge className={`${cfg.color} border-0 text-[9px] px-1.5 py-0`}>
+                        {isZh ? cfg.labelZh : cfg.label}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <code className="text-[11px] text-muted-foreground font-mono truncate">
+                        {session.command}
+                      </code>
+                      <span className="text-[11px] text-muted-foreground shrink-0">
+                        {timeAgo(session.startedAt)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setViewingLog(session)}>
+                      <Eye className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-500" onClick={() => handleDelete(session.id)}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        </CardHeader>
-        {!collapsed && <CardContent className="px-4 pb-4 space-y-2">
-          {sessions.length === 0 && (
-            <p className="text-xs text-muted-foreground text-center py-2">
-              {isZh ? "暂无会话" : "No sessions yet"}
-            </p>
-          )}
-          {sessions.slice(0, 10).map((session) => {
-            const cfg = STATUS_CONFIG[session.status] ?? STATUS_CONFIG.unknown;
-            return (
-              <div
-                key={session.id}
-                className="flex items-center gap-3 p-2.5 rounded-lg border hover:bg-accent/50 transition-colors group"
-              >
-                {cfg.icon}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-medium">{session.skill}</span>
-                    <Badge className={`${cfg.color} border-0 text-[9px] px-1 py-0`}>
-                      {isZh ? cfg.labelZh : cfg.label}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <code className="text-[10px] text-muted-foreground font-mono truncate max-w-[300px]">
-                      {session.command}
-                    </code>
-                    <span className="text-[10px] text-muted-foreground shrink-0">
-                      {timeAgo(session.startedAt)}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-7 w-7 p-0"
-                    onClick={() => setViewingLog(session)}
-                    title={isZh ? "查看日志" : "View Log"}
-                  >
-                    <Eye className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-7 w-7 p-0 text-red-500"
-                    onClick={() => handleDelete(session.id)}
-                    title={isZh ? "删除" : "Delete"}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              </div>
-            );
-          })}
-        </CardContent>}
-      </Card>
+        </DialogContent>
+      </Dialog>
 
       {/* Log viewer dialog */}
-      <Dialog open={!!viewingLog} onOpenChange={(o) => !o && setViewingLog(null)}>
+      <Dialog open={!!viewingLog} onOpenChange={(o) => { if (!o) setViewingLog(null); }}>
         <DialogContent className="sm:max-w-3xl max-h-[85vh]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-sm">
               <FileText className="h-4 w-4" />
-              {viewingLog?.skill} — {isZh ? "日志" : "Log"}
+              {viewingLog?.skill}
               {viewingLog && (
                 <Badge className={`${STATUS_CONFIG[viewingLog.status]?.color} border-0 text-[9px] px-1.5 py-0`}>
                   {isZh ? STATUS_CONFIG[viewingLog.status]?.labelZh : STATUS_CONFIG[viewingLog.status]?.label}
@@ -243,7 +226,7 @@ export function SessionsPanel({ isZh }: SessionsPanelProps) {
               )}
             </DialogTitle>
           </DialogHeader>
-          {viewingLog && <LogViewer logFile={viewingLog.logFile} isZh={isZh} />}
+          {viewingLog && <LogViewer logFile={viewingLog.logFile} />}
         </DialogContent>
       </Dialog>
     </>

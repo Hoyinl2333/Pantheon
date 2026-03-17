@@ -11,7 +11,7 @@ import { getResearchState, getResearchStateSync } from "./aris-store";
 import { ConfigPanel } from "./components/config-panel";
 import { SkillLaunchDialog } from "./components/skill-launch-dialog";
 import { StagePipeline } from "./components/stage-pipeline";
-import { SessionsPanel } from "./components/sessions-panel";
+import { SessionsButton } from "./components/sessions-panel";
 
 const PipelineCanvas = lazy(() =>
   import("./components/pipeline-canvas").then((m) => ({ default: m.PipelineCanvas }))
@@ -78,6 +78,7 @@ export function ArisResearchPage() {
           <Badge variant="outline" className="text-xs">
             {ARIS_SKILLS.length} {t("skillCount")}
           </Badge>
+          <SessionsButton isZh={isZh} />
           <ConfigPanel />
           {showCustomPipeline ? (
             <Button
@@ -108,11 +109,6 @@ export function ArisResearchPage() {
         ) : (
           <StagePipeline locale={locale} onLaunchSkill={handleLaunchById} />
         )}
-      </div>
-
-      {/* Sessions Panel */}
-      <div className="mt-3">
-        <SessionsPanel isZh={isZh} />
       </div>
 
       {/* Skill Launch Dialog */}
