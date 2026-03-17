@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useCallback, useEffect, lazy, Suspense, type SyntheticEvent } from "react";
+import { useState, useCallback, useEffect, lazy, Suspense } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FlaskConical, Workflow, Loader2, ArrowLeft } from "lucide-react";
+import { FlaskConical, Workflow, Loader2 } from "lucide-react";
 import { useTranslations, useLocale } from "next-intl";
 import type { ArisSkill, ResearchState } from "./types";
 import { ARIS_SKILLS } from "./skill-data";
@@ -75,32 +75,24 @@ export function ArisResearchPage() {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-1 pb-3">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <FlaskConical className="h-6 w-6" />
-            {t("title")}
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">{t("description")}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge className={`${statusColor} border-0`}>{statusLabel}</Badge>
-          <Badge variant="outline" className="text-xs">
-            {ARIS_SKILLS.length} {t("skillCount")}
-          </Badge>
-          <WorkspacesButton isZh={isZh} locale={locale} />
-          <SessionsButton isZh={isZh} />
-          <ConfigPanel />
-          {showCustomPipeline ? (
-            <Button
-              size="sm" variant="outline" className="h-7 text-xs gap-1.5"
-              onClick={() => setShowCustomPipeline(false)}
-            >
-              <ArrowLeft className="h-3 w-3" />
-              {isZh ? "返回流程" : "Back to Stages"}
-            </Button>
-          ) : (
+      {/* Header — hidden when in custom pipeline mode (ContextBar handles it) */}
+      {!showCustomPipeline && (
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-1 pb-3">
+          <div>
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+              <FlaskConical className="h-6 w-6" />
+              {t("title")}
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">{t("description")}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge className={`${statusColor} border-0`}>{statusLabel}</Badge>
+            <Badge variant="outline" className="text-xs">
+              {ARIS_SKILLS.length} {t("skillCount")}
+            </Badge>
+            <WorkspacesButton isZh={isZh} locale={locale} />
+            <SessionsButton isZh={isZh} />
+            <ConfigPanel />
             <Button
               size="sm" variant="outline" className="h-7 text-xs gap-1.5"
               onClick={() => setShowCustomPipeline(true)}
@@ -108,15 +100,15 @@ export function ArisResearchPage() {
               <Workflow className="h-3 w-3" />
               {isZh ? "自由编排" : "Custom Pipeline"}
             </Button>
-          )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Main content */}
       <div className="flex-1 min-h-0 border rounded-lg overflow-hidden">
         {showCustomPipeline ? (
           <Suspense fallback={<PipelineLoading />}>
-            <PipelineCanvas locale={locale} />
+            <PipelineCanvas locale={locale} onBack={() => setShowCustomPipeline(false)} />
           </Suspense>
         ) : (
           <StagePipeline locale={locale} onLaunchSkill={handleLaunchById} />
