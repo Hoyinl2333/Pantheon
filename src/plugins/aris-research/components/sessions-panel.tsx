@@ -20,6 +20,8 @@ import {
   Trash2,
   Eye,
   RefreshCw,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 
 interface ArisSession {
@@ -111,6 +113,7 @@ export function SessionsPanel({ isZh }: SessionsPanelProps) {
   const [sessions, setSessions] = useState<ArisSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewingLog, setViewingLog] = useState<ArisSession | null>(null);
+  const [collapsed, setCollapsed] = useState(true);
 
   const fetchSessions = useCallback(async () => {
     try {
@@ -139,29 +142,41 @@ export function SessionsPanel({ isZh }: SessionsPanelProps) {
 
   if (loading) return null;
 
+  // Auto-expand when there are running sessions
+  const hasRunning = runningCount > 0;
+
   return (
     <>
       <Card>
-        <CardHeader className="py-3 px-4">
+        <CardHeader
+          className="py-2.5 px-4 cursor-pointer select-none hover:bg-accent/30 transition-colors"
+          onClick={() => setCollapsed((v) => !v)}
+        >
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold flex items-center gap-2">
               <Monitor className="h-4 w-4" />
               {isZh ? "运行会话" : "Sessions"}
-              {runningCount > 0 && (
+              {sessions.length > 0 && (
+                <Badge variant="secondary" className="text-[9px] px-1 py-0">{sessions.length}</Badge>
+              )}
+              {hasRunning && (
                 <Badge className="bg-amber-500/20 text-amber-700 dark:text-amber-400 border-0 text-[10px] px-1.5 py-0">
                   {runningCount} {isZh ? "运行中" : "running"}
                 </Badge>
               )}
             </h3>
-            <Button size="sm" variant="ghost" className="h-6 px-2" onClick={fetchSessions}>
-              <RefreshCw className="h-3 w-3" />
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button size="sm" variant="ghost" className="h-6 px-2" onClick={(e) => { e.stopPropagation(); fetchSessions(); }}>
+                <RefreshCw className="h-3 w-3" />
+              </Button>
+              {collapsed ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />}
+            </div>
           </div>
         </CardHeader>
-        <CardContent className="px-4 pb-4 space-y-2">
+        {!collapsed && <CardContent className="px-4 pb-4 space-y-2">
           {sessions.length === 0 && (
-            <p className="text-xs text-muted-foreground text-center py-3">
-              {isZh ? "暂无运行会话。启动一个技能后会在这里显示。" : "No sessions yet. Launch a skill to see it here."}
+            <p className="text-xs text-muted-foreground text-center py-2">
+              {isZh ? "暂无会话" : "No sessions yet"}
             </p>
           )}
           {sessions.slice(0, 10).map((session) => {
@@ -211,7 +226,7 @@ export function SessionsPanel({ isZh }: SessionsPanelProps) {
               </div>
             );
           })}
-        </CardContent>
+        </CardContent>}
       </Card>
 
       {/* Log viewer dialog */}

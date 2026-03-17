@@ -84,33 +84,52 @@ export async function POST(req: NextRequest) {
   const sessionId = `aris-${Date.now()}`;
   const logFile = path.join(SESSIONS_DIR, `${sessionId}.log`);
 
-  // Create the PowerShell script that runs claude and logs output
+  // Find claude executable
+  const claudePath = path.join(os.homedir(), ".local", "bin", "claude.exe");
+  const claudeCmd = fs.existsSync(claudePath) ? claudePath : "claude";
+
+  // Create the PowerShell script that runs claude with --print flag (non-interactive)
   const psScript = path.join(SESSIONS_DIR, `${sessionId}.ps1`);
-  const psContent = [
-    `$ErrorActionPreference = 'Continue'`,
-    `$logFile = '${logFile.replace(/\\/g, "\\\\")}'`,
-    `"[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Starting: ${command}" | Out-File -FilePath $logFile -Encoding utf8`,
-    `"[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Skill: ${skill}" | Out-File -FilePath $logFile -Append -Encoding utf8`,
-    `"---" | Out-File -FilePath $logFile -Append -Encoding utf8`,
-    `try {`,
-    `  claude '${command.replace(/'/g, "''")}' 2>&1 | ForEach-Object { $_ | Out-File -FilePath $logFile -Append -Encoding utf8; $_ }`,
-    `  "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] === SESSION COMPLETED ===" | Out-File -FilePath $logFile -Append -Encoding utf8`,
-    `} catch {`,
-    `  "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] ERROR: $_" | Out-File -FilePath $logFile -Append -Encoding utf8`,
-    `}`,
-  ].join("\n");
+  // Escape single quotes in command for PS
+  const escapedCmd = command.replace(/'/g, "''");
+  const escapedLogFile = logFile.replace(/\\/g, "\\\\");
+  const escapedClaudePath = claudeCmd.replace(/\\/g, "\\\\");
+
+  const psContent = `$ErrorActionPreference = 'Continue'
+$logFile = '${escapedLogFile}'
+$claudePath = '${escapedClaudePath}'
+
+"[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Starting: ${command}" | Out-File -FilePath $logFile -Encoding utf8
+"[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Skill: ${skill}" | Out-File -FilePath $logFile -Append -Encoding utf8
+"[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Claude: $claudePath" | Out-File -FilePath $logFile -Append -Encoding utf8
+"---" | Out-File -FilePath $logFile -Append -Encoding utf8
+
+try {
+  & $claudePath -p '${escapedCmd}' 2>&1 | ForEach-Object {
+    $line = "[$(Get-Date -Format 'HH:mm:ss')] $_"
+    $line | Out-File -FilePath $logFile -Append -Encoding utf8
+    Write-Host $_
+  }
+  "" | Out-File -FilePath $logFile -Append -Encoding utf8
+  "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] === SESSION COMPLETED ===" | Out-File -FilePath $logFile -Append -Encoding utf8
+} catch {
+  "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] ERROR: $_" | Out-File -FilePath $logFile -Append -Encoding utf8
+}
+
+Start-Sleep -Seconds 2
+`;
 
   fs.writeFileSync(psScript, psContent, "utf-8");
 
-  // Launch PowerShell in a new visible window (survives browser close)
-  const child = spawn("powershell.exe", [
-    "-NoProfile",
-    "-ExecutionPolicy", "Bypass",
-    "-File", psScript,
+  // Launch in a new visible PowerShell window (survives browser close)
+  const child = spawn("cmd.exe", [
+    "/c", "start",
+    `ARIS: ${skill}`,
+    "powershell.exe",
+    "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", psScript,
   ], {
     detached: true,
     stdio: "ignore",
-    windowsHide: false,
   });
 
   child.unref();
