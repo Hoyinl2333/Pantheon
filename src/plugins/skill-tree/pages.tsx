@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, lazy, Suspense } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,9 +15,18 @@ import {
   ChevronRight,
   ExternalLink,
   X,
+  List,
+  Network,
+  Loader2,
 } from "lucide-react";
 import { useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
+
+const TreeCanvas = lazy(() =>
+  import("./components/tree-canvas").then((m) => ({ default: m.TreeCanvas }))
+);
+
+type ViewMode = "list" | "graph";
 import type { SkillTreeNode, SkillStatus, SkillCategory, SkillTreeState } from "./types";
 import { SKILL_TREE_NODES, CATEGORIES } from "./skill-tree-data";
 import { getSkillTreeState, setSkillStatus } from "./skill-tree-store";
@@ -380,6 +389,7 @@ export function SkillTreePage() {
   const isZh = locale === "zh-CN";
   const router = useRouter();
 
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [treeState, setTreeState] = useState<SkillTreeState>({ overrides: [], customSkills: [] });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -483,6 +493,26 @@ export function SkillTreePage() {
               {f.count} {f.label}
             </button>
           ))}
+
+          {/* View toggle */}
+          <div className="flex gap-0.5 border rounded-md p-0.5">
+            <Button
+              variant={viewMode === "list" ? "default" : "ghost"}
+              size="sm" className="h-6 w-6 p-0"
+              onClick={() => setViewMode("list")}
+              title={isZh ? "列表视图" : "List View"}
+            >
+              <List className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant={viewMode === "graph" ? "default" : "ghost"}
+              size="sm" className="h-6 w-6 p-0"
+              onClick={() => setViewMode("graph")}
+              title={isZh ? "图谱视图" : "Graph View"}
+            >
+              <Network className="h-3.5 w-3.5" />
+            </Button>
+          </div>
 
           {/* Progress */}
           <div className="flex items-center gap-2">
