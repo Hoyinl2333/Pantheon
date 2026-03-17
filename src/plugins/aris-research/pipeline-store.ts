@@ -1,56 +1,79 @@
 /**
- * Pipeline localStorage persistence
+ * Pipeline persistence — file-based via API
  */
 import type { Pipeline } from "./types";
 
-const PIPELINES_KEY = "scc-aris-pipelines";
-const ACTIVE_KEY = "scc-aris-active-pipeline";
+const API = "/api/plugins/aris-research/store";
 
-function readJson<T>(key: string, fallback: T): T {
-  if (typeof window === "undefined") return fallback;
+interface PipelinesData {
+  items: Pipeline[];
+  activePipelineId: string | null;
+}
+
+const EMPTY: PipelinesData = { items: [], activePipelineId: null };
+
+async function readAll(): Promise<PipelinesData> {
   try {
-    const raw = localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : fallback;
+    const res = await fetch(`${API}?key=pipelines`);
+    const envelope = await res.json();
+    return envelope.data ?? EMPTY;
   } catch {
-    return fallback;
+    return EMPTY;
   }
 }
 
-function writeJson<T>(key: string, value: T): void {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(key, JSON.stringify(value));
+async function writeAll(data: PipelinesData): Promise<void> {
+  try {
+    await fetch(API, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: "pipelines", data }),
+    });
+  } catch {
+    // silent fail
+  }
 }
 
-export function getPipelines(): Pipeline[] {
-  return readJson<Pipeline[]>(PIPELINES_KEY, []);
+export async function getPipelines(): Promise<Pipeline[]> {
+  return (await readAll()).items;
 }
 
-export function getPipeline(id: string): Pipeline | null {
-  return getPipelines().find((p) => p.id === id) ?? null;
+export async function getPipeline(id: string): Promise<Pipeline | null> {
+  const all = await readAll();
+  return all.items.find((p) => p.id === id) ?? null;
 }
 
-export function savePipeline(pipeline: Pipeline): void {
-  const all = getPipelines();
-  const idx = all.findIndex((p) => p.id === pipeline.id);
+export async function savePipeline(pipeline: Pipeline): Promise<void> {
+  const all = await readAll();
   const updated = { ...pipeline, updatedAt: new Date().toISOString() };
-  if (idx >= 0) {
-    const next = [...all];
-    next[idx] = updated;
-    writeJson(PIPELINES_KEY, next);
-  } else {
-    writeJson(PIPELINES_KEY, [...all, updated]);
-  }
+  const idx = all.items.findIndex((p) => p.id === pipeline.id);
+  const next = idx >= 0
+    ? { ...all, items: all.items.map((p, i) => i === idx ? updated : p) }
+    : { ...all, items: [updated, ...all.items] };
+  await writeAll(next);
 }
 
-export function deletePipeline(id: string): void {
-  writeJson(PIPELINES_KEY, getPipelines().filter((p) => p.id !== id));
-  if (getActivePipelineId() === id) setActivePipelineId(null);
+export async function deletePipeline(id: string): Promise<void> {
+  const all = await readAll();
+  await writeAll({
+    items: all.items.filter((p) => p.id !== id),
+    activePipelineId: all.activePipelineId === id ? null : all.activePipelineId,
+  });
 }
 
-export function getActivePipelineId(): string | null {
-  return readJson<string | null>(ACTIVE_KEY, null);
+export async function getActivePipelineId(): Promise<string | null> {
+  return (await readAll()).activePipelineId;
 }
 
-export function setActivePipelineId(id: string | null): void {
-  writeJson(ACTIVE_KEY, id);
+export async function setActivePipelineId(id: string | null): Promise<void> {
+  const all = await readAll();
+  await writeAll({ ...all, activePipelineId: id });
+}
+
+// Sync fallback for toolbar (reads cached)
+let _cachedPipelines: Pipeline[] = [];
+export function getPipelinesSync(): Pipeline[] {
+  // Fire-and-forget fetch to update cache
+  getPipelines().then((p) => { _cachedPipelines = p; });
+  return _cachedPipelines;
 }

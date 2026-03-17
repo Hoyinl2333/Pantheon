@@ -1,16 +1,12 @@
 /**
- * ARIS Research Plugin - Config Store
- *
- * localStorage-based persistence for ARIS configuration and research state.
+ * ARIS Config & Research State — file-based persistence via API
  */
-
 import type { ArisConfig, ResearchState } from "./types";
 
-const CONFIG_KEY = "scc-aris-config";
-const STATE_KEY = "scc-aris-state";
+const API = "/api/plugins/aris-research/store";
 
 const DEFAULT_CONFIG: ArisConfig = {
-  reviewerModel: "claude-sonnet-4-20250514",
+  reviewerModel: "claude-sonnet-4-6",
   reviewerProvider: "codex-mcp",
   autoProceed: false,
   humanCheckpoint: true,
@@ -31,45 +27,64 @@ const DEFAULT_STATE: ResearchState = {
   outputs: [],
 };
 
-function readJson<T>(key: string, fallback: T): T {
-  if (typeof window === "undefined") return fallback;
+// --- Async API-based functions ---
+
+export async function getArisConfig(): Promise<ArisConfig> {
   try {
-    const raw = localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : fallback;
+    const res = await fetch(`${API}?key=config`);
+    const envelope = await res.json();
+    return envelope.data ? { ...DEFAULT_CONFIG, ...envelope.data } : DEFAULT_CONFIG;
   } catch {
-    return fallback;
+    return DEFAULT_CONFIG;
   }
 }
 
-function writeJson<T>(key: string, value: T): void {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(key, JSON.stringify(value));
+export async function setArisConfig(config: ArisConfig): Promise<void> {
+  try {
+    await fetch(API, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: "config", data: config }),
+    });
+  } catch {
+    // silent fail
+  }
 }
 
-/** Get the current ARIS config (merged with defaults) */
-export function getArisConfig(): ArisConfig {
-  const stored = readJson<Partial<ArisConfig>>(CONFIG_KEY, {});
-  return { ...DEFAULT_CONFIG, ...stored };
+export async function getResearchState(): Promise<ResearchState> {
+  try {
+    const res = await fetch(`${API}?key=research-state`);
+    const envelope = await res.json();
+    return envelope.data ? { ...DEFAULT_STATE, ...envelope.data } : DEFAULT_STATE;
+  } catch {
+    return DEFAULT_STATE;
+  }
 }
 
-/** Update ARIS config (partial merge) */
-export function setArisConfig(config: Partial<ArisConfig>): void {
-  const current = getArisConfig();
-  writeJson(CONFIG_KEY, { ...current, ...config });
+export async function setResearchState(state: Partial<ResearchState>): Promise<void> {
+  try {
+    const current = await getResearchState();
+    const next = { ...current, ...state, lastUpdate: new Date().toISOString() };
+    await fetch(API, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: "research-state", data: next }),
+    });
+  } catch {
+    // silent fail
+  }
 }
 
-/** Get the current research state */
-export function getResearchState(): ResearchState {
-  return readJson<ResearchState>(STATE_KEY, DEFAULT_STATE);
+export async function resetResearchState(): Promise<void> {
+  await setResearchState(DEFAULT_STATE);
 }
 
-/** Update research state (partial merge) */
-export function setResearchState(state: Partial<ResearchState>): void {
-  const current = getResearchState();
-  writeJson(STATE_KEY, { ...current, ...state, lastUpdate: new Date().toISOString() });
+// --- Sync fallbacks for SSR/initial render ---
+
+export function getArisConfigSync(): ArisConfig {
+  return DEFAULT_CONFIG;
 }
 
-/** Reset research state to idle defaults */
-export function resetResearchState(): void {
-  writeJson(STATE_KEY, DEFAULT_STATE);
+export function getResearchStateSync(): ResearchState {
+  return DEFAULT_STATE;
 }

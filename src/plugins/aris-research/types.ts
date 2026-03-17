@@ -102,6 +102,15 @@ export interface Pipeline {
   updatedAt: string;
 }
 
+/** Per-stage runtime data (persisted) */
+export interface StageData {
+  status: "locked" | "available" | "in-progress" | "done" | "skipped";
+  inputs: Record<string, string>;
+  attachments: ProgramAttachment[];
+  notes: string;
+  updatedAt?: string;
+}
+
 /** Runtime state of a research workflow */
 export interface ResearchState {
   currentWorkflow: string | null;

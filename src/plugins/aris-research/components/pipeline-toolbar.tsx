@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { LayoutGrid, Maximize2, Save, Play, Trash2, Plus, Check, FolderOpen, Square, Loader2 } from "lucide-react";
 import { PIPELINE_TEMPLATES } from "../pipeline-templates";
-import { getPipelines } from "../pipeline-store";
+import { getPipelinesSync } from "../pipeline-store";
 
 interface PipelineToolbarProps {
   name: string;
@@ -50,7 +50,7 @@ export function PipelineToolbar({
   isZh,
   saveStatus,
 }: PipelineToolbarProps) {
-  const saved = getPipelines();
+  const saved = getPipelinesSync();
 
   return (
     <div className="flex items-center gap-2 px-3 py-2 border-b bg-background">

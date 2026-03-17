@@ -1,16 +1,17 @@
 "use client";
 
-import { useState, useMemo, useCallback, lazy, Suspense } from "react";
+import { useState, useCallback, useEffect, lazy, Suspense } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FlaskConical, Workflow, Loader2, ArrowLeft } from "lucide-react";
 import { useTranslations, useLocale } from "next-intl";
-import type { ArisSkill } from "./types";
+import type { ArisSkill, ResearchState } from "./types";
 import { ARIS_SKILLS } from "./skill-data";
-import { getResearchState } from "./aris-store";
+import { getResearchState, getResearchStateSync } from "./aris-store";
 import { ConfigPanel } from "./components/config-panel";
 import { SkillLaunchDialog } from "./components/skill-launch-dialog";
 import { StagePipeline } from "./components/stage-pipeline";
+import { SessionsPanel } from "./components/sessions-panel";
 
 const PipelineCanvas = lazy(() =>
   import("./components/pipeline-canvas").then((m) => ({ default: m.PipelineCanvas }))
@@ -43,7 +44,12 @@ export function ArisResearchPage() {
   const [launchContext, setLaunchContext] = useState<string>("");
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const state = useMemo(() => getResearchState(), []);
+  // Async research state
+  const [state, setState] = useState<ResearchState>(getResearchStateSync);
+  useEffect(() => {
+    getResearchState().then(setState);
+  }, []);
+
   const statusLabel = t(`status.${state.status}`);
   const statusColor = STATUS_COLORS[state.status] ?? STATUS_COLORS.idle;
 
@@ -75,9 +81,7 @@ export function ArisResearchPage() {
           <ConfigPanel />
           {showCustomPipeline ? (
             <Button
-              size="sm"
-              variant="outline"
-              className="h-7 text-xs gap-1.5"
+              size="sm" variant="outline" className="h-7 text-xs gap-1.5"
               onClick={() => setShowCustomPipeline(false)}
             >
               <ArrowLeft className="h-3 w-3" />
@@ -85,9 +89,7 @@ export function ArisResearchPage() {
             </Button>
           ) : (
             <Button
-              size="sm"
-              variant="outline"
-              className="h-7 text-xs gap-1.5"
+              size="sm" variant="outline" className="h-7 text-xs gap-1.5"
               onClick={() => setShowCustomPipeline(true)}
             >
               <Workflow className="h-3 w-3" />
@@ -106,6 +108,11 @@ export function ArisResearchPage() {
         ) : (
           <StagePipeline locale={locale} onLaunchSkill={handleLaunchById} />
         )}
+      </div>
+
+      {/* Sessions Panel */}
+      <div className="mt-3">
+        <SessionsPanel isZh={isZh} />
       </div>
 
       {/* Skill Launch Dialog */}

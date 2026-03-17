@@ -23,16 +23,18 @@ import { Switch } from "@/components/ui/switch";
 import { Settings2, Save, Check } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type { ArisConfig } from "../types";
-import { getArisConfig, setArisConfig } from "../aris-store";
+import { getArisConfig, setArisConfig, getArisConfigSync } from "../aris-store";
 
 export function ConfigPanel() {
   const t = useTranslations("aris");
   const [open, setOpen] = useState(false);
-  const [config, setConfig] = useState<ArisConfig>(getArisConfig);
+  const [config, setConfig] = useState<ArisConfig>(getArisConfigSync);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    if (open) setConfig(getArisConfig());
+    if (open) {
+      getArisConfig().then(setConfig);
+    }
   }, [open]);
 
   const update = (patch: Partial<ArisConfig>) => {
@@ -40,8 +42,8 @@ export function ConfigPanel() {
     setSaved(false);
   };
 
-  const handleSave = () => {
-    setArisConfig(config);
+  const handleSave = async () => {
+    await setArisConfig(config);
     setSaved(true);
     setTimeout(() => setSaved(false), 1500);
   };

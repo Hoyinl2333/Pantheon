@@ -23,7 +23,7 @@ import type { Pipeline, PipelineNode, PipelineEdge, ResearchProgram, NodeStatus 
 import { ARIS_SKILLS } from "../skill-data";
 import { autoLayout } from "../lib/auto-layout";
 import { PIPELINE_TEMPLATES } from "../pipeline-templates";
-import { savePipeline, getPipeline, getPipelines } from "../pipeline-store";
+import { savePipeline, getPipeline } from "../pipeline-store";
 import { PipelineExecutor, type ExecutionEvent } from "../lib/pipeline-executor";
 import { nodeTypes } from "./skill-node";
 import { SkillPalette } from "./skill-palette";
@@ -154,8 +154,8 @@ function PipelineCanvasInner({ locale }: { locale: string }) {
   }, [setNodes, setEdges, fitView, isZh]);
 
   // Load saved pipeline
-  const handleLoadSaved = useCallback((plId: string) => {
-    const pl = getPipeline(plId);
+  const handleLoadSaved = useCallback(async (plId: string) => {
+    const pl = await getPipeline(plId);
     if (!pl) return;
     setNodes(toFlowNodes(pl.nodes, isZh));
     setEdges(toFlowEdges(pl.edges));
@@ -173,8 +173,8 @@ function PipelineCanvasInner({ locale }: { locale: string }) {
     setTimeout(() => fitView({ padding: 0.2 }), 100);
   }, [nodes, edges, setNodes, fitView, isZh]);
 
-  const handleSave = useCallback(() => {
-    savePipeline(currentPipeline);
+  const handleSave = useCallback(async () => {
+    await savePipeline(currentPipeline);
     setSaveStatus("saved");
     setTimeout(() => setSaveStatus("idle"), 2000);
   }, [currentPipeline]);

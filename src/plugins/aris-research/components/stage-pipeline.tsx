@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -33,20 +33,13 @@ import {
   type ResearchStage,
   type StageStatus,
 } from "../research-stages";
-import type { ProgramAttachment } from "../types";
+import type { ProgramAttachment, StageData } from "../types";
+import { getStageData, saveStageData, defaultStageData } from "../stage-store";
 
 /* ─── Icon Map ─── */
 const STAGE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   BookOpen, ShieldCheck, Cpu, Zap, RefreshCw, FileText,
 };
-
-/* ─── Per-stage runtime data ─── */
-interface StageData {
-  status: StageStatus;
-  inputs: Record<string, string>;
-  attachments: ProgramAttachment[];
-  notes: string;
-}
 
 function generateId() {
   return `att-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
@@ -479,13 +472,30 @@ export function StagePipeline({ locale, onLaunchSkill }: StagePipelineProps) {
   const isZh = locale === "zh-CN";
   const [activeStage, setActiveStage] = useState<string | null>(null);
 
-  const [stageData, setStageData] = useState<Record<string, StageData>>(() => {
-    const init: Record<string, StageData> = {};
-    for (const stage of RESEARCH_STAGES) {
-      init[stage.id] = { status: "available", inputs: {}, attachments: [], notes: "" };
-    }
-    return init;
-  });
+  const [stageData, setStageData] = useState<Record<string, StageData>>(defaultStageData);
+  const [loaded, setLoaded] = useState(false);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isInitialRef = useRef(true);
+
+  // Load from file on mount
+  useEffect(() => {
+    getStageData().then((data) => {
+      setStageData(data);
+      setLoaded(true);
+      // Mark initial load complete after state settles
+      setTimeout(() => { isInitialRef.current = false; }, 100);
+    });
+  }, []);
+
+  // Debounced save on change (skip initial load)
+  useEffect(() => {
+    if (!loaded || isInitialRef.current) return;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      saveStageData(stageData);
+    }, 800);
+    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
+  }, [stageData, loaded]);
 
   const updateStageData = useCallback(
     (stageId: string, patch: Partial<StageData>) => {
