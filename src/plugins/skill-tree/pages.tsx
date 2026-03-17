@@ -529,60 +529,76 @@ export function SkillTreePage() {
         </div>
       </div>
 
-      {/* Search */}
-      <div className="relative px-1 pb-3">
-        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-        <Input
-          className="h-8 text-xs pl-8"
-          placeholder={isZh ? "搜索技能..." : "Search skills..."}
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-      </div>
-
       {/* Main content */}
-      <div className="flex flex-1 min-h-0 gap-0">
-        {/* Skill list */}
-        <div className="flex-1 overflow-y-auto px-1 pb-4 space-y-4">
-          {Array.from(groupedSkills.entries()).map(([catId, skills]) => {
-            const cat = CATEGORIES.find((c) => c.id === catId);
-            if (!cat) return null;
-            return (
-              <CategorySection
-                key={catId}
-                category={cat}
-                skills={skills}
+      {viewMode === "graph" ? (
+        /* Graph view (React Flow) */
+        <div className="flex-1 min-h-0 border rounded-lg overflow-hidden">
+          <Suspense fallback={
+            <div className="flex items-center justify-center h-full gap-2 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /><span className="text-sm">Loading graph...</span>
+            </div>
+          }>
+            <TreeCanvas locale={locale} />
+          </Suspense>
+        </div>
+      ) : (
+        /* List view */
+        <>
+          {/* Search */}
+          <div className="relative px-1 pb-3">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              className="h-8 text-xs pl-8"
+              placeholder={isZh ? "搜索技能..." : "Search skills..."}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          <div className="flex flex-1 min-h-0 gap-0">
+            {/* Skill list */}
+            <div className="flex-1 overflow-y-auto px-1 pb-4 space-y-4">
+              {Array.from(groupedSkills.entries()).map(([catId, skills]) => {
+                const cat = CATEGORIES.find((c) => c.id === catId);
+                if (!cat) return null;
+                return (
+                  <CategorySection
+                    key={catId}
+                    category={cat}
+                    skills={skills}
+                    statusMap={statusMap}
+                    isZh={isZh}
+                    selectedId={selectedId}
+                    onSelect={setSelectedId}
+                    collapsed={collapsedCats.has(catId)}
+                    onToggle={() => toggleCat(catId)}
+                  />
+                );
+              })}
+
+              {groupedSkills.size === 0 && (
+                <div className="text-center py-12 text-sm text-muted-foreground">
+                  {isZh ? "没有匹配的技能" : "No matching skills"}
+                </div>
+              )}
+            </div>
+
+            {/* Detail panel */}
+            {selectedSkill && (
+              <DetailPanel
+                skill={selectedSkill}
+                status={statusMap.get(selectedSkill.id) ?? selectedSkill.defaultStatus}
+                allSkills={allSkills}
                 statusMap={statusMap}
                 isZh={isZh}
-                selectedId={selectedId}
-                onSelect={setSelectedId}
-                collapsed={collapsedCats.has(catId)}
-                onToggle={() => toggleCat(catId)}
+                onClose={() => setSelectedId(null)}
+                onStatusChange={handleStatusChange}
+                onNavigate={(route) => router.push(route)}
               />
-            );
-          })}
-
-          {groupedSkills.size === 0 && (
-            <div className="text-center py-12 text-sm text-muted-foreground">
-              {isZh ? "没有匹配的技能" : "No matching skills"}
-            </div>
-          )}
-        </div>
-
-        {/* Detail panel */}
-        {selectedSkill && (
-          <DetailPanel
-            skill={selectedSkill}
-            status={statusMap.get(selectedSkill.id) ?? selectedSkill.defaultStatus}
-            allSkills={allSkills}
-            statusMap={statusMap}
-            isZh={isZh}
-            onClose={() => setSelectedId(null)}
-            onStatusChange={handleStatusChange}
-            onNavigate={(route) => router.push(route)}
-          />
-        )}
-      </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }
