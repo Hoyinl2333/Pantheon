@@ -1,111 +1,141 @@
-# Super Claude Code
+<p align="center">
+  <img src="docs/logo.svg" alt="Super Claude Code" width="128" />
+</p>
 
-[English](./README.md) | [中文](./README_CN.md)
+<h1 align="center">Super Claude Code</h1>
 
-一个用于管理和监控 [Claude Code](https://docs.anthropic.com/en/docs/claude-code) 会话、团队、Token、MCP 服务器和配置文件的 Web 仪表盘。
+<p align="center">
+  <strong>Claude Code 全功能管理仪表盘 — 监控、聊天、编排、科研、定制。</strong>
+</p>
 
-技术栈: **Next.js 16** + **TypeScript** + **Tailwind CSS v4** + **shadcn/ui** + **Recharts**
+<p align="center">
+  <a href="#功能特性">功能特性</a> &bull;
+  <a href="#快速开始">快速开始</a> &bull;
+  <a href="#截图">截图</a> &bull;
+  <a href="#架构">架构</a> &bull;
+  <a href="./README.md">English</a>
+</p>
 
-## 功能
+<p align="center">
+  <img src="https://img.shields.io/badge/版本-4.4.0-blue" alt="Version" />
+  <img src="https://img.shields.io/badge/Next.js-16-black" alt="Next.js" />
+  <img src="https://img.shields.io/badge/TypeScript-5.x-blue" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/license-MIT-green" alt="License" />
+  <img src="https://img.shields.io/badge/i18n-EN%20%7C%20中文-orange" alt="i18n" />
+</p>
 
-### 总览仪表盘
-- 6 个统计卡片（总会话数、活跃团队、Agent 数、Token 用量、平均会话费用、缓存命中率）
-- 活跃进程检测与状态指示器
-- Token 摘要，含 7 天迷你趋势图
-- 最近会话快速访问
-- 快捷操作面板
-- 团队概览
+---
 
-### 团队看板
-- 实时展示团队成员及状态指示器（工作中 / 空闲 / 已完成 / 超时 / 已终止）
-- 任务看板（待处理 → 进行中 → 已完成），支持持久化
-- 消息流展示 Agent 间通信
-- 历史 Agent 自动发现与折叠展示
-- 团队下拉选择器
+## 功能特性
 
-### 会话管理
-- 网格/列表视图切换展示所有项目的会话
-- 彩色状态方块（ClaudeGlance 风格）
-- **收藏/星标** 系统，支持 localStorage 持久化
-- **日期和模型筛选** 快速查找会话
-- **搜索功能** 跨会话名称和项目搜索
-- **排序选项**（最新/最旧、费用、Token 数）
-- **自动刷新**，每 10 秒更新一次
-- Card/Terminal 视图模式，支持 localStorage 记忆
-- 会话详情与对话消息
-- 引用文件预览
-- **Markdown 导出** 会话对话内容
-- 从团队看板深链接到关联会话
+### 仪表盘与监控
 
-### Token 用量
-- **时间范围选择器**（7 天 / 14 天 / 30 天 / 全部）
-- **交互式面积图**，使用 Recharts + Brush 缩放控制
-- **图表/表格切换** 数据可视化
-- **分页表格**，支持每页条数控制
-- **模型分布饼图** 展示各模型占比
-- **CSV 导出**（明细模式 & 汇总模式）
-- **今日 vs 本周对比** 统计数据
-- **缓存节省** 计算与展示
-- 按会话和项目追踪 Token 消耗
-- 输入 / 输出 / 缓存读 / 缓存写分项统计
-- 总费用估算，支持各模型定价
+| 功能 | 说明 |
+|------|------|
+| **总览** | 6 张统计卡片、活跃进程检测、7 天 Token 趋势迷你图、快捷操作 |
+| **会话管理** | 网格/列表视图、ClaudeGlance 颜色状态、搜索/筛选/收藏、Markdown 导出 |
+| **Token 分析** | 交互式图表（刷选缩放）、模型饼图、CSV 导出、费用追踪 |
+| **任务队列** | 后台任务管理，自动刷新 |
 
-### 对话查看器
-- **气泡式对话查看器** 交互式会话回放
-- **自动滚动** 至最新消息
-- **工具调用折叠/展开** 提高可读性
-- **思考块显示** 展示扩展思考内容
-- **会话选择器** 快速切换会话
-- 实时对话渲染，支持 Markdown
+### AI 聊天
 
-### 工具箱（配置中心）
-- **5 标签页界面**：MCP + Skills & Commands + Hooks + Agents + Rules
-- **MCP 商店**：14 个热门服务器一键安装
-  - 包括：Filesystem、Fetch、GitHub、Brave Search、Postgres、Playwright、Memory、Puppeteer、Slack、Sequential Thinking、Time、EverythingSearch、Perplexity、Google Drive
-- **全 CRUD 操作** 支持所有工具类型（创建、读取、更新、删除）
-- **Skills & Agents & Rules 模板商店** 快速设置
-- **帮助文档** 各工具类型说明
-- **摘要视图** 显示数量和状态
-- MCP 服务器健康检查
+| 功能 | 说明 |
+|------|------|
+| **流式聊天** | GPT 风格界面，实时流式响应，工具调用可视化 |
+| **多模型切换** | Claude 与 Codex 一键切换（GPT-5.4 / o3-pro / codex-mini） |
+| **双屏对比** | Claude vs Codex 并排对比模式 |
+| **斜杠命令** | 输入 `/` 触发命令菜单，模糊搜索 + 键盘导航 |
+| **命令面板** | Ctrl+K 全局搜索（页面/命令/会话） |
 
-### CLAUDE.md 编辑器
-- 分栏编辑器 + 实时 Markdown 预览
-- 编辑全局和项目级 CLAUDE.md 文件
-- 创建新 CLAUDE.md 文件：
-  - **项目预设**（自动检测 `~/.claude/projects/`）
-  - **文件浏览器**（支持切换磁盘）
-  - **自定义路径**（粘贴任意目录）
-- 删除 CLAUDE.md 文件（带确认对话框）
-- 快捷键 `Ctrl+S` 保存
-- Registry 视图展示所有 CLAUDE.md 文件
+### 技能树
 
-### 设置
-- **可编辑配置**（模型选择、主题、功能开关）
-- **花费预警设置** 支持阈值配置
-- 直接集成 Claude Code settings.json
-- 模型默认值与偏好管理
+| 功能 | 说明 |
+|------|------|
+| **双视图** | 列表视图（8 大分类）+ 图谱视图（React Flow 六边形节点 + Tier 分层） |
+| **49+ 技能** | 基建、编程、科研、管理、创意、集成、高级、其他 |
+| **自动检测** | 「检测配置」按钮 + 「全部检测」批量验证 |
+| **智能创建** | 用自然语言描述需求，AI 自动分析依赖并创建技能图 |
+| **参数配置** | 每个技能可配参数（如实验运行器的 SSH 服务器下拉框） |
+| **使用示例** | 「试试看」区域，含可点击链接和终端命令 |
+| **依赖检查** | 前置依赖未满足时阻止激活，显示警告 |
 
-### MCP 服务器管理（旧版）
-- 查看所有已配置的 MCP 服务器（全局 `settings.json` + 项目级 `.mcp.json`）
-- 服务器类型、命令、参数、环境变量展示
-- 按项目分组
-- *注意：v0.8.0 已由工具箱替代*
+### ARIS 科研流水线
 
-### 通用
-- **通知系统** 含花费预警和铃铛图标
-- **暗色模式**（跟随系统）
-- **键盘快捷键**（1-8 页面导航）
-- 响应式侧边栏布局
-- 所有可交互元素显示手型光标
-- 自动刷新 `~/.claude/` 目录数据
+| 功能 | 说明 |
+|------|------|
+| **6 阶段工作流** | 文献调研 → 验证筛选 → 方案设计 → 实验执行 → 评审迭代 → 论文撰写 |
+| **自定义流水线** | 可视化 DAG 编辑器，拖拽技能节点 |
+| **4 个模板** | 选题发现、自动评审、论文写作、全流程研究 |
+| **执行仪表盘** | 实时日志、迷你 DAG、文件浏览、检查点审批 |
+| **自动报告** | 流水线完成后生成结构化报告（摘要卡片 + 时间线） |
+| **阶段同步** | 技能完成时自动更新阶段状态 |
+
+### Agent 团队
+
+| 功能 | 说明 |
+|------|------|
+| **可视化画布** | React Flow 团队编辑器，拖拽添加 Agent 节点 |
+| **5 个预设** | 结对编程、TDD 小队、全栈团队、研究分析等 |
+| **多模型协作** | 每个 Agent 可使用不同模型（Claude / GPT-5.4 / DeepSeek） |
+| **执行编排** | 顺序 / 并行 / 层级工作流，实时日志 |
+| **执行历史** | 浏览历史运行记录，展开查看每个 Agent 状态和日志 |
+
+### 配置管理
+
+| 功能 | 说明 |
+|------|------|
+| **工具箱** | 5 标签页：MCP 服务器、技能、Hooks、Agent、规则 — 含商店 |
+| **API 密钥** | 管理 15+ 平台密钥，查询余额/模型列表 |
+| **CLAUDE.md 编辑器** | 分栏编辑 + 预览，Registry 支持 |
+| **设置中心** | 模型选择器、Bot 向导、权限管理、语言切换 |
+| **Telegram / 飞书** | Bot 集成，通知推送与远程控制 |
+
+### 通用特性
+
+| 功能 | 说明 |
+|------|------|
+| **国际化** | 中英文完整支持，一键切换 |
+| **暗色模式** | 跟随系统，全页面一致 |
+| **PWA** | 可安装为桌面/移动端应用 |
+| **响应式** | 移动端优化布局 |
+| **键盘快捷键** | 1-8 页面导航，Ctrl+K 命令面板 |
+
+---
+
+## 截图
+
+<details>
+<summary><strong>点击展开截图</strong></summary>
+
+| 总览 | 聊天 |
+|------|------|
+| ![总览](docs/screenshots/overview.png) | ![聊天](docs/screenshots/chat.png) |
+
+| 技能树（列表） | 技能树（图谱） |
+|----------------|----------------|
+| ![技能树列表](docs/screenshots/skill-tree-list.png) | ![技能树图谱](docs/screenshots/skill-tree-graph.png) |
+
+| ARIS 科研 | Agent 团队 |
+|-----------|-----------|
+| ![ARIS](docs/screenshots/aris-pipeline.png) | ![团队](docs/screenshots/agent-teams.png) |
+
+| Token 分析 | 工具箱 |
+|------------|--------|
+| ![Tokens](docs/screenshots/tokens.png) | ![工具箱](docs/screenshots/toolbox.png) |
+
+</details>
+
+---
 
 ## 快速开始
 
-### 前置要求
-- Node.js 18+
-- 已安装并配置 Claude Code（`~/.claude/` 目录存在）
+### 前置条件
 
-### 安装与运行
+- **Node.js 18+**
+- **Claude Code CLI** — `npm install -g @anthropic-ai/claude-code`
+- 可选：**Codex CLI** — `npm install -g @openai/codex`（双模型聊天）
+
+### 安装运行
 
 ```bash
 git clone https://github.com/ChenYX24/Super-Claude-Code.git
@@ -114,7 +144,7 @@ npm install
 npm run dev
 ```
 
-打开 [http://localhost:3000](http://localhost:3000)
+打开 **http://localhost:3000**
 
 ### 生产构建
 
@@ -123,120 +153,95 @@ npm run build
 npm start
 ```
 
-## 项目结构
+### Claude Code 集成
+
+```bash
+# 打开当前会话的仪表盘
+claude "/dashboard"
+
+# 打开所有会话的仪表盘
+claude "/dashboard_all"
+```
+
+---
+
+## 架构
 
 ```
 dashboard/
 ├── src/
-│   ├── app/                      # Next.js App Router 页面
-│   │   ├── page.tsx              # 总览仪表盘
-│   │   ├── team/                 # 团队看板
-│   │   ├── sessions/             # 会话管理
-│   │   ├── tokens/               # Token 用量
-│   │   ├── chat/                 # 对话查看器
-│   │   ├── toolbox/              # 工具箱配置中心
-│   │   ├── editor/               # CLAUDE.md 编辑器
-│   │   ├── settings/             # 设置面板
-│   │   ├── mcp/                  # MCP 管理（旧版）
-│   │   └── api/                  # API 路由（19 个端点）
-│   │       ├── teams/            # 团队管理
-│   │       ├── sessions/         # 会话管理
-│   │       ├── tokens/           # Token 统计与导出
-│   │       ├── claudemd/         # CLAUDE.md CRUD & registry
-│   │       ├── toolbox/          # 工具箱数据与 CRUD
-│   │       ├── browse/           # 文件系统浏览
-│   │       ├── settings/         # 设置 GET/PUT
-│   │       └── processes/        # 进程检测
-│   ├── components/               # 共享组件
-│   │   ├── ui/                   # shadcn/ui 基础组件
-│   │   ├── team-board/           # 团队相关组件
-│   │   ├── sessions/             # 会话组件（block, detail, list, analytics）
-│   │   ├── toolbox/              # 工具箱对话框（rule, agent）
-│   │   ├── sidebar-nav.tsx       # 侧边栏导航
-│   │   ├── notification-bell.tsx # 通知系统
-│   │   └── markdown-content.tsx  # Markdown 渲染器
-│   ├── hooks/                    # 自定义 React Hooks
-│   │   ├── use-favorites.ts      # 收藏 localStorage hook
-│   │   ├── use-notifications.ts  # 通知 hook
-│   │   └── use-keyboard-shortcuts.ts # 全局键盘快捷键
-│   └── lib/                      # 核心逻辑
-│       ├── claude-reader.ts      # 团队、任务、消息 + 任务缓存 + MCP
-│       ├── session-reader.ts     # 会话 JSONL + Token 导出 + 模型检测
-│       ├── claudemd.ts           # CLAUDE.md CRUD + Registry
-│       ├── toolbox-reader.ts     # Skills/Commands/Hooks/Agents/Rules 读取
-│       ├── mcp-registry.ts       # 14 个热门 MCP 服务器注册
-│       ├── tools-registry.ts     # Skills/Agents/Rules 模板库
-│       ├── format-utils.ts       # 公共格式化工具
-│       ├── process-reader.ts     # 进程检测
-│       └── types.ts              # 共享类型
-├── public/                       # 静态资源
-└── package.json
+│   ├── app/                    # Next.js 16 App Router
+│   │   ├── api/                # 30+ API 路由
+│   │   └── plugins/[pluginId]/ # 动态插件页面
+│   ├── plugins/                # 模块化插件系统
+│   │   ├── skill-tree/         # 技能树 (1.8K 行)
+│   │   ├── aris-research/      # ARIS 科研 (9.6K 行)
+│   │   ├── agent-teams/        # Agent 团队 (3.5K 行)
+│   │   └── api-management/     # API 密钥管理
+│   ├── components/             # 共享 UI (shadcn/ui)
+│   ├── lib/                    # 核心逻辑
+│   │   ├── providers/          # Claude + Codex CLI 适配器
+│   │   └── execution/          # 共享执行器
+│   └── i18n/                   # 国际化 (en, zh-CN)
+├── messages/                   # i18n 翻译文件
+└── public/                     # 静态资源 + PWA manifest
 ```
 
-## 技术栈
+### 技术栈
 
-| 层 | 技术 |
-|-------|-----------|
-| 框架 | Next.js 16 (App Router) |
-| 语言 | TypeScript |
-| 样式 | Tailwind CSS v4 |
-| 组件库 | shadcn/ui |
-| 图表 | Recharts |
-| Markdown | react-markdown + remark-gfm |
-| 数据源 | 本地文件系统（`~/.claude/`） |
-| 状态管理 | localStorage（收藏、通知、视图偏好） |
+| 层级 | 技术 |
+|------|------|
+| 框架 | **Next.js 16**（App Router + Turbopack） |
+| 语言 | **TypeScript 5.x** |
+| 样式 | **Tailwind CSS v4** |
+| UI | **shadcn/ui** |
+| 图可视化 | **React Flow**（技能树、ARIS 画布、Agent 团队） |
+| 数据图表 | **Recharts**（Token 分析） |
+| 数据源 | 本地文件（`~/.claude/`、`~/.codex/`） |
+| 国际化 | **next-intl**（EN / 中文） |
 
-## 路线图
+### 支持的模型
 
-### Phase 3: 仪表盘增强
-- [x] **设置面板** — 查看/编辑 Claude 配置 ✅ v0.8.0
-- [x] **运行进程检测** — 检测活跃的 Claude CLI 进程 ✅ v0.4.0
-- [x] **终端风格会话视图** — 会话详情更接近终端显示效果 ✅ v0.4.0
-- [x] **MCP 健康检查** — 检测 MCP 服务器是否在线/可达 ✅ v0.8.0
-- [x] **通知系统** — 花费预警与更新提示 ✅ v0.8.0
+| 提供者 | 模型 |
+|--------|------|
+| **Claude** | claude-opus-4-6, claude-sonnet-4-6, claude-haiku-4-5 |
+| **OpenAI（旗舰）** | gpt-5.4, gpt-5.4-pro, gpt-5.4-mini, gpt-5.3-codex, codex-mini-latest |
+| **OpenAI（推理）** | o3-pro, o3, o4-mini, o1, o1-mini |
+| **OpenAI（GPT）** | gpt-5.3, 5.2, 5, 4.1, 4.1-mini, 4.1-nano, 4o, 4o-mini |
+| **API 服务商** | DeepSeek、硅基流动、Moonshot、智谱、OpenRouter、Groq、Together、Google、Mistral 等 |
 
-### Phase 4: Claude Code 命令集成
-- [x] **/dashboard 命令** — 仅当前会话开启 Dashboard ✅（脚本位于 `~/.claude/scripts/scc/`）
-- [x] **/dashboard_all 命令** — 开启所有会话的 Dashboard ✅（脚本位于 `~/.claude/scripts/scc/`）
+---
 
-### Phase 5: 外部集成
-- [ ] **Telegram Bot** — 移动端控制与通知
-- [ ] **Docker 集成** — 隔离容器中执行自动化任务
+## 版本历史
 
-### Phase 6: 质量与打磨
-- [ ] **代码质量**：拆分大文件（toolbox 900+ 行）、测试覆盖、代码审查
-- [ ] **UX 打磨**：响应式优化、暗色模式全覆盖、统一加载状态
-- [ ] **移动端远程管理**：手机端项目管理与控制
+| 版本 | 日期 | 亮点 |
+|------|------|------|
+| **v4.4.0** | 2026-03-18 | 技能树智能创建 + ARIS 报告 + Agent 团队重构 + 聊天性能 |
+| **v4.3.0** | 2026-03-17 | 技能树双视图，49 技能，8 大分类 |
+| **v4.1.0** | 2026-03-17 | ARIS 结果查看、检查点、通知、Agent 执行器 |
+| **v4.0.0** | 2026-03-17 | Agent 团队画布、ARIS 引擎、工作区 |
+| **v3.0.0** | 2026-03-16 | API 管理、性能优化、完整国际化 |
+| **v2.0.0** | 2026-02-23 | 流式聊天、Codex 集成、Provider 系统 |
+| **v1.0.0** | 2026-02-20 | GPT 风格聊天、会话管理、工具箱 |
 
-### AI 工具箱（自动接单生态）
+---
 
-> 独立扩展模块，通过统一入口接收任务，AI 自动分发执行。
+## 贡献
 
-#### 创意与内容制作
-- [ ] **视频剪辑接单** — 接收素材 + 要求，AI 自动剪辑/合成/配字幕
-- [ ] **设计接单** — 接收设计需求，AI 生成海报/Logo/UI 稿
-- [ ] **视频信息抓取** — 提取元数据、字幕、关键帧
-- [ ] **手机媒体上传** — 手机端发图片/视频触发处理流水线
+1. Fork 本仓库
+2. 创建特性分支：`git checkout -b feature/my-feature`
+3. 提交更改：`git commit -m "feat: 添加新功能"`
+4. 推送：`git push origin feature/my-feature`
+5. 发起 Pull Request
 
-#### 编程与开发
-- [ ] **编程接单** — 接收需求，AI 自动编码 + 测试 + 交付
-- [ ] **代码审查服务** — 提交 PR/代码片段，AI 出审查报告
-- [ ] **Bug 修复服务** — 描述问题 + 仓库地址，AI 定位修复
+---
 
-#### 金融行情分析
-- [ ] **贵金属** — 黄金白银实时行情与趋势
-- [ ] **加密货币** — 比特币等监控与提醒
-- [ ] **股指分析** — 标普/纳斯达克/沪深300/恒生看板
+## 许可证
 
-#### 多平台内容中心
-- [ ] **GitHub/小红书/HF/论文** — 管理分类推送
-- [ ] **智能分类推送** — AI 内容路由至相关频道
+MIT
 
-#### API 大一统管理中台
-- [ ] **用量看板 + 费用分析 + 预算提醒 + Key 管理**
+---
 
-### 待定
-- [ ] Token 用量图表
-- [ ] 多用户支持
-- [ ] WebSocket 实时更新
-- [ ] 国际化（English / Chinese）
+<p align="center">
+  基于 Claude Code + Super Claude Code 构建
+</p>
