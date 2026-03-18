@@ -23,6 +23,7 @@ import {
   Plus, Trash2, ChevronDown, ChevronUp, GripVertical,
   Loader2, Save, Users,
 } from "lucide-react";
+import { useLocale } from "next-intl";
 import type { AgentTeam, TeamMember, WorkflowMode, MemberProvider, ApiKeyOption } from "../types";
 import { ALL_MODELS } from "../team-data";
 
@@ -40,6 +41,7 @@ function MemberEditor({
   isOnly,
   nameError,
   promptError,
+  isZh,
 }: {
   member: TeamMember;
   apiKeys: ApiKeyOption[];
@@ -50,6 +52,7 @@ function MemberEditor({
   nameError?: string;
   /** Inline validation error for the systemPrompt field */
   promptError?: string;
+  isZh: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -72,7 +75,7 @@ function MemberEditor({
             value={member.name}
             onChange={(e) => onUpdate({ name: e.target.value })}
             className={`h-8 text-sm font-medium ${nameError ? "border-destructive" : ""}`}
-            placeholder="Member name"
+            placeholder={isZh ? "成员名称" : "Member name"}
           />
           {nameError && (
             <p className="text-[10px] text-destructive mt-0.5">{nameError}</p>
@@ -119,7 +122,7 @@ function MemberEditor({
           className="h-7 w-7 p-0 text-destructive"
           onClick={onRemove}
           disabled={isOnly}
-          title="Remove member"
+          title={isZh ? "移除成员" : "Remove member"}
         >
           <Trash2 className="h-3.5 w-3.5" />
         </Button>
@@ -130,23 +133,23 @@ function MemberEditor({
         <div className="space-y-2 pt-1 border-t">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div className="space-y-1">
-              <label className="text-xs font-medium">Role</label>
+              <label className="text-xs font-medium">{isZh ? "角色" : "Role"}</label>
               <Input
                 value={member.role}
                 onChange={(e) => onUpdate({ role: e.target.value })}
                 className="h-8 text-xs"
-                placeholder="e.g. Code Reviewer"
+                placeholder={isZh ? "例如：代码审查员" : "e.g. Code Reviewer"}
               />
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-medium">Tier (1=top)</label>
+              <label className="text-xs font-medium">{isZh ? "层级 (1=最高)" : "Tier (1=top)"}</label>
               <Select value={String(member.tier)} onValueChange={(v) => onUpdate({ tier: Number(v) })}>
                 <SelectTrigger className="h-8 text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {[1, 2, 3, 4, 5].map((t) => (
-                    <SelectItem key={t} value={String(t)}>Tier {t}</SelectItem>
+                    <SelectItem key={t} value={String(t)}>{isZh ? `层级 ${t}` : `Tier ${t}`}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -156,13 +159,13 @@ function MemberEditor({
           {/* API Key (for api/codex provider) */}
           {(member.provider === "api" || member.provider === "codex") && apiKeys.length > 0 && (
             <div className="space-y-1">
-              <label className="text-xs font-medium">API Key</label>
+              <label className="text-xs font-medium">{isZh ? "API 密钥" : "API Key"}</label>
               <Select value={member.apiKeyId || "none"} onValueChange={(v) => onUpdate({ apiKeyId: v === "none" ? undefined : v })}>
                 <SelectTrigger className="h-8 text-xs">
-                  <SelectValue placeholder="Use env variable" />
+                  <SelectValue placeholder={isZh ? "使用环境变量" : "Use env variable"} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Use env variable</SelectItem>
+                  <SelectItem value="none">{isZh ? "使用环境变量" : "Use env variable"}</SelectItem>
                   {apiKeys.map((k) => (
                     <SelectItem key={k.id} value={k.id}>
                       <span className="flex items-center gap-1">
@@ -177,22 +180,22 @@ function MemberEditor({
           )}
 
           <div className="space-y-1">
-            <label className="text-xs font-medium">Description</label>
+            <label className="text-xs font-medium">{isZh ? "描述" : "Description"}</label>
             <Input
               value={member.description}
               onChange={(e) => onUpdate({ description: e.target.value })}
               className="h-8 text-xs"
-              placeholder="What this member does"
+              placeholder={isZh ? "这个成员的职责" : "What this member does"}
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-medium">System Prompt</label>
+            <label className="text-xs font-medium">{isZh ? "系统提示" : "System Prompt"}</label>
             <textarea
               value={member.systemPrompt}
               onChange={(e) => onUpdate({ systemPrompt: e.target.value })}
               className={`w-full text-xs border rounded-md p-2 bg-background min-h-[80px] focus:outline-none focus:ring-1 focus:ring-ring resize-y ${promptError ? "border-destructive" : ""}`}
-              placeholder="Instructions for this agent..."
+              placeholder={isZh ? "该代理的说明..." : "Instructions for this agent..."}
             />
             {promptError && (
               <p className="text-[10px] text-destructive">{promptError}</p>
@@ -305,6 +308,10 @@ export function TeamEditor({ open, onOpenChange, team, onSave, saving }: TeamEdi
     setMembers((prev) => prev.filter((m) => m.id !== id));
   }, []);
 
+  // ---- Locale ----
+  const locale = useLocale();
+  const isZh = locale === "zh-CN";
+
   // ---- Validation ----
   const memberErrors = useMemo(() => {
     const errors: Record<string, { name?: string; prompt?: string }> = {};
@@ -321,19 +328,19 @@ export function TeamEditor({ open, onOpenChange, team, onSave, saving }: TeamEdi
     for (const m of members) {
       const e: { name?: string; prompt?: string } = {};
       if (!m.name.trim()) {
-        e.name = "Name is required";
+        e.name = isZh ? "名称是必需的" : "Name is required";
       } else if (nameCount[m.name.trim().toLowerCase()] > 1) {
-        e.name = "Duplicate member name";
+        e.name = isZh ? "重复的成员名称" : "Duplicate member name";
       }
       if (!m.systemPrompt.trim()) {
-        e.prompt = "System prompt is required";
+        e.prompt = isZh ? "系统提示是必需的" : "System prompt is required";
       }
       if (e.name || e.prompt) {
         errors[m.id] = e;
       }
     }
     return errors;
-  }, [members]);
+  }, [members, isZh]);
 
   const hasMemberErrors = Object.keys(memberErrors).length > 0;
 
@@ -358,10 +365,12 @@ export function TeamEditor({ open, onOpenChange, team, onSave, saving }: TeamEdi
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
-            {team ? "Edit Team" : "Create Team"}
+            {team ? (isZh ? "编辑团队" : "Edit Team") : (isZh ? "创建团队" : "Create Team")}
           </DialogTitle>
           <DialogDescription>
-            Configure your agent team with different models and providers for each member.
+            {isZh
+              ? "为团队中的每个成员配置不同的模型和提供商。"
+              : "Configure your agent team with different models and providers for each member."}
           </DialogDescription>
         </DialogHeader>
 
@@ -369,23 +378,23 @@ export function TeamEditor({ open, onOpenChange, team, onSave, saving }: TeamEdi
           {/* Team basics */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Team Name</label>
+              <label className="text-sm font-medium">{isZh ? "团队名称" : "Team Name"}</label>
               <Input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. My TDD Squad"
+                placeholder={isZh ? "例如：我的 TDD 小队" : "e.g. My TDD Squad"}
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Workflow</label>
+              <label className="text-sm font-medium">{isZh ? "工作流" : "Workflow"}</label>
               <Select value={workflow} onValueChange={(v) => setWorkflow(v as WorkflowMode)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="sequential">Sequential (one after another)</SelectItem>
-                  <SelectItem value="parallel">Parallel (all at once)</SelectItem>
-                  <SelectItem value="hierarchical">Hierarchical (tiered)</SelectItem>
+                  <SelectItem value="sequential">{isZh ? "顺序 (依次执行)" : "Sequential (one after another)"}</SelectItem>
+                  <SelectItem value="parallel">{isZh ? "并行 (全部同时)" : "Parallel (all at once)"}</SelectItem>
+                  <SelectItem value="hierarchical">{isZh ? "分层 (分级执行)" : "Hierarchical (tiered)"}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -393,46 +402,46 @@ export function TeamEditor({ open, onOpenChange, team, onSave, saving }: TeamEdi
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Icon</label>
+              <label className="text-sm font-medium">{isZh ? "图标" : "Icon"}</label>
               <Select value={icon} onValueChange={setIcon}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="users">Users</SelectItem>
-                  <SelectItem value="castle">Castle (Governance)</SelectItem>
-                  <SelectItem value="flask-conical">Flask (Testing)</SelectItem>
-                  <SelectItem value="layers">Layers (Full Stack)</SelectItem>
-                  <SelectItem value="brain">Brain (Research)</SelectItem>
+                  <SelectItem value="users">{isZh ? "用户" : "Users"}</SelectItem>
+                  <SelectItem value="castle">{isZh ? "城堡 (治理)" : "Castle (Governance)"}</SelectItem>
+                  <SelectItem value="flask-conical">{isZh ? "烧瓶 (测试)" : "Flask (Testing)"}</SelectItem>
+                  <SelectItem value="layers">{isZh ? "层叠 (全栈)" : "Layers (Full Stack)"}</SelectItem>
+                  <SelectItem value="brain">{isZh ? "大脑 (研究)" : "Brain (Research)"}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Tags</label>
+              <label className="text-sm font-medium">{isZh ? "标签" : "Tags"}</label>
               <Input
                 value={tags}
                 onChange={(e) => setTags(e.target.value)}
-                placeholder="comma-separated tags"
+                placeholder={isZh ? "逗号分隔的标签" : "comma-separated tags"}
               />
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Description</label>
+            <label className="text-sm font-medium">{isZh ? "描述" : "Description"}</label>
             <Input
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="What does this team do?"
+              placeholder={isZh ? "这个团队做什么？" : "What does this team do?"}
             />
           </div>
 
           {/* Members */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-sm font-medium">Members ({members.length})</label>
+              <label className="text-sm font-medium">{isZh ? "成员" : "Members"} ({members.length})</label>
               <Button variant="outline" size="sm" onClick={handleAddMember} className="h-7 text-xs">
                 <Plus className="h-3 w-3 mr-1" />
-                Add Member
+                {isZh ? "添加成员" : "Add Member"}
               </Button>
             </div>
             <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-1">
@@ -446,6 +455,7 @@ export function TeamEditor({ open, onOpenChange, team, onSave, saving }: TeamEdi
                   isOnly={members.length <= 1}
                   nameError={memberErrors[member.id]?.name}
                   promptError={memberErrors[member.id]?.prompt}
+                  isZh={isZh}
                 />
               ))}
             </div>
@@ -453,10 +463,10 @@ export function TeamEditor({ open, onOpenChange, team, onSave, saving }: TeamEdi
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>{isZh ? "取消" : "Cancel"}</Button>
           <Button onClick={handleSubmit} disabled={!isValid || saving}>
             {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
-            {team ? "Update" : "Create"}
+            {team ? (isZh ? "更新" : "Update") : (isZh ? "创建" : "Create")}
           </Button>
         </DialogFooter>
       </DialogContent>

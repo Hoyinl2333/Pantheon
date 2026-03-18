@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   ChevronDown, ChevronUp, BookOpen, Download, CheckCircle, Loader2, AlertCircle, Terminal,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { useToast } from "@/components/toast";
 
 interface InstallStatus {
@@ -19,6 +19,8 @@ interface InstallStatus {
 
 export function InstallGuide() {
   const t = useTranslations("aris");
+  const locale = useLocale();
+  const isZh = locale === "zh-CN";
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<InstallStatus | null>(null);
@@ -43,13 +45,13 @@ export function InstallGuide() {
       });
       const data = await res.json();
       if (res.ok) {
-        toast(`Installed ${data.skillsCopied} skills + ${data.mcpServersCopied} MCP servers`, "success");
+        toast(isZh ? `已安装 ${data.skillsCopied} 个技能 + ${data.mcpServersCopied} 个 MCP 服务器` : `Installed ${data.skillsCopied} skills + ${data.mcpServersCopied} MCP servers`, "success");
         checkStatus();
       } else {
-        toast(data.error || "Install failed", "error");
+        toast(data.error || (isZh ? "安装失败" : "Install failed"), "error");
       }
     } catch {
-      toast("Install failed", "error");
+      toast(isZh ? "安装失败" : "Install failed", "error");
     } finally {
       setInstalling(false);
     }
@@ -89,19 +91,19 @@ export function InstallGuide() {
               onClick={handleInstall}
             >
               {installing ? (
-                <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Installing...</>
+                <><Loader2 className="h-3.5 w-3.5 animate-spin" /> {isZh ? "安装中..." : "Installing..."}</>
               ) : allInstalled ? (
-                <><CheckCircle className="h-3.5 w-3.5" /> All Installed</>
+                <><CheckCircle className="h-3.5 w-3.5" /> {isZh ? "全部已安装" : "All Installed"}</>
               ) : (
-                <><Download className="h-3.5 w-3.5" /> Install Research Skills</>
+                <><Download className="h-3.5 w-3.5" /> {isZh ? "安装研究技能" : "Install Research Skills"}</>
               )}
             </Button>
             <span className="text-xs text-muted-foreground">
               {allInstalled
-                ? `${status!.total} skills + MCP servers ready`
+                ? isZh ? `${status!.total} 个技能 + MCP 服务器已就绪` : `${status!.total} skills + MCP servers ready`
                 : status
-                  ? `${status.missing.length} skills to install`
-                  : "Checking..."}
+                  ? isZh ? `${status.missing.length} 个技能待安装` : `${status.missing.length} skills to install`
+                  : isZh ? "检查中..." : "Checking..."}
             </span>
           </div>
 
@@ -120,10 +122,10 @@ export function InstallGuide() {
           {/* How to use */}
           <div>
             <h3 className="text-xs font-semibold mb-2 flex items-center gap-1.5">
-              <Terminal className="h-3.5 w-3.5" /> How to Run
+              <Terminal className="h-3.5 w-3.5" /> {isZh ? "使用方法" : "How to Run"}
             </h3>
             <div className="space-y-2 text-xs text-muted-foreground">
-              <p><strong>Best for overnight tasks:</strong> Run directly in a terminal with Claude Code CLI, not in the Dashboard chat.</p>
+              <p><strong>{isZh ? "适合长时间任务：" : "Best for overnight tasks:"}</strong> {isZh ? "直接在终端使用 Claude Code CLI 运行，不要在 Dashboard 聊天中使用。" : "Run directly in a terminal with Claude Code CLI, not in the Dashboard chat."}</p>
               <div className="bg-muted rounded-md p-3 space-y-1 font-mono">
                 <div># Open a persistent terminal (won&apos;t close when you sleep)</div>
                 <div className="text-foreground">screen -S research</div>
@@ -134,14 +136,14 @@ export function InstallGuide() {
               </div>
               <p className="flex items-center gap-1">
                 <AlertCircle className="h-3 w-3" />
-                Dashboard Chat is for quick tasks. For long runs, use terminal + screen.
+                {isZh ? "Dashboard 聊天适合快速任务。长时间运行请使用终端 + screen。" : "Dashboard Chat is for quick tasks. For long runs, use terminal + screen."}
               </p>
             </div>
           </div>
 
           {/* Configure reviewer */}
           <div>
-            <h3 className="text-xs font-semibold mb-1">Configure Reviewer LLM</h3>
+            <h3 className="text-xs font-semibold mb-1">{isZh ? "配置审阅 LLM" : "Configure Reviewer LLM"}</h3>
             <div className="bg-muted rounded-md p-3 space-y-1 font-mono text-xs">
               <div># Option A: Codex MCP (GPT-5.4)</div>
               <div className="text-foreground">claude mcp add codex -s user -- codex mcp-server</div>

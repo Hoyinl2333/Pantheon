@@ -19,10 +19,12 @@ const PipelineCanvas = lazy(() =>
 );
 
 function PipelineLoading() {
+  const locale = useLocale();
+  const isZh = locale === "zh-CN";
   return (
     <div className="flex items-center justify-center h-full gap-2 text-muted-foreground">
       <Loader2 className="h-4 w-4 animate-spin" />
-      <span className="text-sm">Loading pipeline editor...</span>
+      <span className="text-sm">{isZh ? "加载管道编辑器..." : "Loading pipeline editor..."}</span>
     </div>
   );
 }

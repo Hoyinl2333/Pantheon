@@ -99,6 +99,47 @@ function formatTimestamp(iso: string): string {
   });
 }
 
+// ---- Agent output entry component ----
+
+function AgentOutputEntry({
+  name,
+  output,
+}: {
+  name: string;
+  output: string;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const preview = output.length > 200 ? output.slice(0, 200) + "..." : output;
+
+  return (
+    <div className="rounded border bg-muted/30 text-xs">
+      <button
+        className="flex items-center gap-2 w-full px-2 py-1.5 text-left"
+        onClick={() => setExpanded(!expanded)}
+      >
+        {expanded ? (
+          <ChevronUp className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+        ) : (
+          <ChevronDown className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+        )}
+        <span className="font-medium truncate">{name}</span>
+        {!expanded && (
+          <span className="text-[10px] text-muted-foreground truncate ml-1">
+            {preview}
+          </span>
+        )}
+      </button>
+      {expanded && (
+        <div className="border-t px-2 py-1.5 max-h-60 overflow-y-auto">
+          <pre className="text-[10px] font-mono text-muted-foreground whitespace-pre-wrap break-words">
+            {output}
+          </pre>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ---- Run row component ----
 
 function RunRow({ run, isZh }: { run: TeamRun; isZh: boolean }) {
@@ -239,7 +280,6 @@ function RunRow({ run, isZh }: { run: TeamRun; isZh: boolean }) {
                 {Object.entries(run.nodeOutputs).map(([nodeId, output]) => (
                   <AgentOutputEntry
                     key={nodeId}
-                    nodeId={nodeId}
                     name={run.nodeNames?.[nodeId] ?? nodeId}
                     output={output}
                   />

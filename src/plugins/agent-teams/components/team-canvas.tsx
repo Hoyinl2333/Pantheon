@@ -31,6 +31,7 @@ import * as store from "../team-store";
 import { AgentNode, type AgentNodeData, type AgentNodeStatus } from "./agent-node";
 import { MemberPalette } from "./member-palette";
 import { ExecutionPanel, type ExecutionNodeStatus } from "./execution-panel";
+import { NodeContextMenu, type ContextMenuAction } from "./node-context-menu";
 import { TeamExecutor, type TeamExecutorOptions } from "../lib/team-executor";
 import type { ExecutionEvent } from "@/lib/execution";
 
@@ -47,6 +48,17 @@ const AGENT_NODE_WIDTH = 260;
 const AGENT_NODE_HEIGHT = 120;
 
 // ---- Helpers ----
+function getEdgeStyle(type?: string): { strokeWidth: number; stroke?: string; strokeDasharray?: string } {
+  switch (type) {
+    case "control":
+      return { strokeWidth: 2, stroke: "#f59e0b", strokeDasharray: "5,5" }; // amber, dashed
+    case "review":
+      return { strokeWidth: 2, stroke: "#8b5cf6", strokeDasharray: "3,3" }; // purple, dotted
+    default: // "data"
+      return { strokeWidth: 2, stroke: "#60a5fa" }; // blue, solid
+  }
+}
+
 function generateMemberId(): string {
   return `member-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -83,7 +95,8 @@ function membersToEdges(members: TeamMember[]): Edge[] {
         id: `e-${m.parentId}-${m.id}`,
         source: m.parentId,
         target: m.id,
-        style: { strokeWidth: 2 },
+        style: getEdgeStyle("data"),
+        data: { type: "data" },
       });
     }
   }
@@ -95,7 +108,8 @@ function membersToEdges(members: TeamMember[]): Edge[] {
         id: `e-${sorted[i].id}-${sorted[i + 1].id}`,
         source: sorted[i].id,
         target: sorted[i + 1].id,
-        style: { strokeWidth: 2 },
+        style: getEdgeStyle("data"),
+        data: { type: "data" },
       });
     }
   }
@@ -153,12 +167,19 @@ function TeamCanvasInner({ team, onTeamUpdate, locale }: TeamCanvasInnerProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    nodeId: string;
+    nodeName: string;
+  } | null>(null);
   const [paletteCollapsed, setPaletteCollapsed] = useState(false);
 
   // Execution state
   const [isRunning, setIsRunning] = useState(false);
   const [executionLogs, setExecutionLogs] = useState<string[]>([]);
   const [nodeStatuses, setNodeStatuses] = useState<ExecutionNodeStatus[]>([]);
+  const [nodeOutputs, setNodeOutputs] = useState<Record<string, string>>({});
   const [totalTokens, setTotalTokens] = useState(0);
   const [elapsedMs, setElapsedMs] = useState(0);
   const [promptInput, setPromptInput] = useState("");
@@ -187,7 +208,10 @@ function TeamCanvasInner({ team, onTeamUpdate, locale }: TeamCanvasInnerProps) {
           id: e.id,
           source: e.source,
           target: e.target,
-          style: { strokeWidth: 2 },
+          label: e.label,
+          type: "default",
+          style: getEdgeStyle(e.type),
+          data: { type: e.type },
         }))
       : membersToEdges(team.members);
 
@@ -207,9 +231,25 @@ function TeamCanvasInner({ team, onTeamUpdate, locale }: TeamCanvasInnerProps) {
 
   // ---- Handlers ----
   const onConnect: OnConnect = useCallback(
-    (conn: Connection) => setEdges((eds) => addEdge({ ...conn, style: { strokeWidth: 2 } }, eds)),
+    (conn: Connection) => setEdges((eds) => addEdge({
+      ...conn,
+      style: getEdgeStyle("data"),
+      data: { type: "data" },
+    }, eds)),
     [setEdges],
   );
+
+  const onEdgeClick = useCallback((_: React.MouseEvent, edge: Edge) => {
+    const types = ["data", "control", "review"] as const;
+    const currentType = (edge.data?.type as string) ?? "data";
+    const idx = types.indexOf(currentType as typeof types[number]);
+    const nextType = types[(idx + 1) % types.length];
+    setEdges((eds) => eds.map((e) =>
+      e.id === edge.id
+        ? { ...e, style: getEdgeStyle(nextType), data: { ...e.data, type: nextType }, label: e.label && !types.includes(e.label as typeof types[number]) ? e.label : nextType }
+        : e
+    ));
+  }, [setEdges]);
 
   const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
     setSelectedNodeId(node.id);
@@ -217,7 +257,44 @@ function TeamCanvasInner({ team, onTeamUpdate, locale }: TeamCanvasInnerProps) {
 
   const onPaneClick = useCallback(() => {
     setSelectedNodeId(null);
+    setContextMenu(null);
   }, []);
+
+  const onNodeContextMenu = useCallback((e: React.MouseEvent, node: Node) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const data = node.data as AgentNodeData;
+    const MENU_W = 170, MENU_H = 120;
+    setContextMenu({
+      x: Math.min(e.clientX, window.innerWidth - MENU_W),
+      y: Math.min(e.clientY, window.innerHeight - MENU_H),
+      nodeId: node.id,
+      nodeName: data.name ?? "Agent",
+    });
+  }, []);
+
+  const handleContextAction = useCallback((action: ContextMenuAction) => {
+    if (action.type === "delete") {
+      setNodes((nds) => nds.filter((n) => n.id !== action.nodeId));
+      setEdges((eds) => eds.filter((e) => e.source !== action.nodeId && e.target !== action.nodeId));
+    } else if (action.type === "duplicate") {
+      setNodes((nds) => {
+        const sourceNode = nds.find((n) => n.id === action.nodeId);
+        if (!sourceNode) return nds;
+        const d = sourceNode.data as AgentNodeData;
+        const newId = `member-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        return [...nds, {
+          id: newId,
+          type: "agent",
+          position: { x: sourceNode.position.x + 30, y: sourceNode.position.y + 30 },
+          data: { ...d, memberId: newId, name: `${d.name} (copy)` } satisfies AgentNodeData,
+        }];
+      });
+    } else if (action.type === "edit") {
+      setSelectedNodeId(action.nodeId);
+    }
+    setContextMenu(null);
+  }, [setNodes, setEdges]);
 
   const onDragOver = useCallback((e: DragEvent) => {
     e.preventDefault();
@@ -324,6 +401,7 @@ function TeamCanvasInner({ team, onTeamUpdate, locale }: TeamCanvasInnerProps) {
     setShowPromptInput(false);
     setIsRunning(true);
     setExecutionLogs([]);
+    setNodeOutputs({});
     setTotalTokens(0);
     setElapsedMs(0);
     startTimeRef.current = Date.now();
@@ -393,9 +471,22 @@ function TeamCanvasInner({ team, onTeamUpdate, locale }: TeamCanvasInnerProps) {
     });
     executorRef.current = executor;
 
-    executor.runPipeline().then((run) => {
-      setTotalTokens(run.totalTokens ?? 0);
-    });
+    executor.runPipeline()
+      .then((run) => {
+        setTotalTokens(run.totalTokens ?? 0);
+        if (run.nodeOutputs) {
+          setNodeOutputs(run.nodeOutputs);
+        }
+      })
+      .catch((err) => {
+        console.error("[TeamCanvas] runPipeline failed:", err);
+        setIsRunning(false);
+        if (timerRef.current) clearInterval(timerRef.current);
+        setExecutionLogs((prev) => [
+          ...prev,
+          `\n=== Error: ${err instanceof Error ? err.message : String(err)} ===`,
+        ]);
+      });
   }, [nodes, edges, team, setNodes, setEdges]);
 
   const handleRun = useCallback(() => {
@@ -424,6 +515,7 @@ function TeamCanvasInner({ team, onTeamUpdate, locale }: TeamCanvasInnerProps) {
     setEdges((eds) => eds.map((e) => ({ ...e, animated: false })));
     setExecutionLogs([]);
     setNodeStatuses([]);
+    setNodeOutputs({});
     setTotalTokens(0);
     setElapsedMs(0);
   }, [setNodes, setEdges]);
@@ -518,7 +610,9 @@ function TeamCanvasInner({ team, onTeamUpdate, locale }: TeamCanvasInnerProps) {
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
             onNodeClick={onNodeClick}
+            onEdgeClick={onEdgeClick}
             onPaneClick={onPaneClick}
+            onNodeContextMenu={onNodeContextMenu}
             onDragOver={onDragOver}
             onDrop={onDrop}
             nodeTypes={nodeTypes}
@@ -540,6 +634,34 @@ function TeamCanvasInner({ team, onTeamUpdate, locale }: TeamCanvasInnerProps) {
               }}
             />
           </ReactFlow>
+          {/* Edge type legend */}
+          {edges.length > 0 && (
+            <div className="absolute top-2 right-2 bg-background/90 backdrop-blur-sm border rounded-md px-2.5 py-1.5 text-[10px] flex items-center gap-3 shadow-sm pointer-events-none z-10">
+              <div className="flex items-center gap-1">
+                <svg width="20" height="6"><line x1="0" y1="3" x2="20" y2="3" stroke="#60a5fa" strokeWidth="2" /></svg>
+                <span className="text-muted-foreground">data</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <svg width="20" height="6"><line x1="0" y1="3" x2="20" y2="3" stroke="#f59e0b" strokeWidth="2" strokeDasharray="5,5" /></svg>
+                <span className="text-muted-foreground">control</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <svg width="20" height="6"><line x1="0" y1="3" x2="20" y2="3" stroke="#8b5cf6" strokeWidth="2" strokeDasharray="3,3" /></svg>
+                <span className="text-muted-foreground">review</span>
+              </div>
+            </div>
+          )}
+          {contextMenu && (
+            <NodeContextMenu
+              x={contextMenu.x}
+              y={contextMenu.y}
+              nodeId={contextMenu.nodeId}
+              nodeName={contextMenu.nodeName}
+              onAction={handleContextAction}
+              onClose={() => setContextMenu(null)}
+              isZh={isZh}
+            />
+          )}
         </div>
       </div>
 
@@ -593,6 +715,7 @@ function TeamCanvasInner({ team, onTeamUpdate, locale }: TeamCanvasInnerProps) {
         isRunning={isRunning}
         logs={executionLogs}
         nodeStatuses={nodeStatuses}
+        nodeOutputs={nodeOutputs}
         totalTokens={totalTokens}
         elapsedMs={elapsedMs}
         onStop={handleStop}

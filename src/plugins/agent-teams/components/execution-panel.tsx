@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -24,6 +24,8 @@ export interface ExecutionPanelProps {
   elapsedMs: number;
   onStop: () => void;
   isZh: boolean;
+  /** Agent outputs collected during execution */
+  nodeOutputs?: Record<string, string>;
 }
 
 const STATUS_BADGE_STYLES: Record<AgentNodeStatus, string> = {
@@ -44,6 +46,39 @@ const STATUS_ICONS: Record<AgentNodeStatus, React.ReactNode> = {
   skipped: <XCircle className="h-3 w-3" />,
 };
 
+function OutputEntry({ name, output, isZh }: { name: string; output?: string; isZh: boolean }) {
+  const [expanded, setExpanded] = useState(false);
+  if (!output) {
+    return (
+      <div className="px-3 py-2 border-b border-zinc-800/50 last:border-b-0">
+        <div className="text-[11px] font-medium text-zinc-400">{name}</div>
+        <div className="text-[10px] text-zinc-600 italic mt-0.5">
+          {isZh ? "等待中..." : "Pending..."}
+        </div>
+      </div>
+    );
+  }
+  const preview = output.length > 150 ? output.slice(0, 150) + "..." : output;
+  return (
+    <div className="px-3 py-2 border-b border-zinc-800/50 last:border-b-0">
+      <div className="flex items-center justify-between">
+        <div className="text-[11px] font-medium text-zinc-300">{name}</div>
+        {output.length > 150 && (
+          <button
+            className="text-[10px] text-blue-400 hover:text-blue-300"
+            onClick={() => setExpanded(!expanded)}
+          >
+            {expanded ? (isZh ? "收起" : "Less") : (isZh ? "展开" : "More")}
+          </button>
+        )}
+      </div>
+      <pre className="text-[10px] text-zinc-400 mt-1 whitespace-pre-wrap break-words font-mono leading-relaxed max-h-[200px] overflow-y-auto">
+        {expanded ? output : preview}
+      </pre>
+    </div>
+  );
+}
+
 function formatElapsed(ms: number): string {
   const s = Math.floor(ms / 1000);
   const m = Math.floor(s / 60);
@@ -60,8 +95,10 @@ export function ExecutionPanel({
   elapsedMs,
   onStop,
   isZh,
+  nodeOutputs,
 }: ExecutionPanelProps) {
   const [expanded, setExpanded] = useState(false);
+  const [activeTab, setActiveTab] = useState<"logs" | "outputs">("logs");
   const logEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-expand when running starts
@@ -76,11 +113,18 @@ export function ExecutionPanel({
     }
   }, [logs.length, expanded]);
 
-  const hasContent = logs.length > 0 || nodeStatuses.length > 0 || isRunning;
-  if (!hasContent) return null;
-
   const doneCount = nodeStatuses.filter((n) => n.status === "done").length;
   const totalCount = nodeStatuses.length;
+
+  // Auto-switch to outputs tab when execution completes
+  useEffect(() => {
+    if (!isRunning && doneCount > 0 && doneCount === totalCount) {
+      setActiveTab("outputs");
+    }
+  }, [isRunning, doneCount, totalCount]);
+
+  const hasContent = logs.length > 0 || nodeStatuses.length > 0 || isRunning;
+  if (!hasContent) return null;
 
   return (
     <div className="border-t bg-background">
@@ -146,31 +190,75 @@ export function ExecutionPanel({
             </div>
           )}
 
-          {/* Log stream */}
+          {/* Tabbed right panel */}
           <div className="flex-1 flex flex-col min-w-0">
-            <div className="flex-1 overflow-y-auto bg-zinc-950/90 backdrop-blur-sm text-zinc-200 p-3 font-mono text-[11px] leading-relaxed">
-              {logs.length === 0 ? (
-                <span className="text-zinc-500">{isZh ? "等待日志..." : "Waiting for logs..."}</span>
-              ) : (
-                logs.map((log, i) => (
-                  <div
-                    key={i}
-                    className={
-                      log.includes("ERROR") || log.includes("error")
-                        ? "text-red-400"
-                        : log.includes("Done") || log.includes("Completed") || log.includes("Success")
-                        ? "text-green-400"
-                        : log.includes("===")
-                        ? "text-blue-300 font-semibold"
-                        : ""
-                    }
-                  >
-                    {log}
-                  </div>
-                ))
-              )}
-              <div ref={logEndRef} />
+            {/* Tab bar */}
+            <div className="flex border-b border-zinc-800 bg-zinc-950/90">
+              <button
+                className={`px-3 py-1 text-[10px] font-medium border-b-2 transition-colors ${
+                  activeTab === "logs"
+                    ? "border-blue-400 text-blue-400"
+                    : "border-transparent text-zinc-500 hover:text-zinc-300"
+                }`}
+                onClick={() => setActiveTab("logs")}
+              >
+                {isZh ? "日志" : "Logs"} ({logs.length})
+              </button>
+              <button
+                className={`px-3 py-1 text-[10px] font-medium border-b-2 transition-colors ${
+                  activeTab === "outputs"
+                    ? "border-blue-400 text-blue-400"
+                    : "border-transparent text-zinc-500 hover:text-zinc-300"
+                }`}
+                onClick={() => setActiveTab("outputs")}
+              >
+                {isZh ? "输出" : "Outputs"} ({Object.keys(nodeOutputs ?? {}).length})
+              </button>
             </div>
+
+            {/* Tab content */}
+            {activeTab === "logs" ? (
+              <div className="flex-1 overflow-y-auto bg-zinc-950/90 backdrop-blur-sm text-zinc-200 p-3 font-mono text-[11px] leading-relaxed">
+                {logs.length === 0 ? (
+                  <span className="text-zinc-500">{isZh ? "等待日志..." : "Waiting for logs..."}</span>
+                ) : (
+                  logs.map((log, i) => (
+                    <div
+                      key={i}
+                      className={
+                        log.includes("ERROR") || log.includes("error")
+                          ? "text-red-400"
+                          : log.includes("Done") || log.includes("Completed") || log.includes("Success")
+                          ? "text-green-400"
+                          : log.includes("===")
+                          ? "text-blue-300 font-semibold"
+                          : ""
+                      }
+                    >
+                      {log}
+                    </div>
+                  ))
+                )}
+                <div ref={logEndRef} />
+              </div>
+            ) : (
+              <div className="flex-1 overflow-y-auto bg-zinc-950/90 backdrop-blur-sm">
+                {nodeStatuses.length === 0 ? (
+                  <div className="p-3 text-zinc-500 text-[11px]">
+                    {isZh ? "暂无输出" : "No outputs yet"}
+                  </div>
+                ) : (
+                  nodeStatuses.map((ns) => (
+                    <OutputEntry
+                      key={ns.nodeId}
+                      name={ns.name}
+                      output={nodeOutputs?.[ns.nodeId]}
+                      isZh={isZh}
+                    />
+                  ))
+                )}
+              </div>
+            )}
 
             {/* Stop button */}
             {isRunning && (

@@ -8,6 +8,7 @@ import {
   X, Download, Upload, FileUp, Link, Check, AlertCircle,
   Package, Sparkles, Bot, BookOpen, Loader2, CheckSquare, Square,
 } from "lucide-react";
+import { useLocale } from "next-intl";
 import type { SkillInfo, AgentInfo, RuleInfo } from "./types";
 
 // ---- Types ----
@@ -37,6 +38,8 @@ interface ExportDialogProps {
 
 export function ExportDialog({ open, onClose, skills, agents, rules }: ExportDialogProps) {
   const { toast } = useToast();
+  const locale = useLocale();
+  const isZh = locale === "zh-CN";
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [exporting, setExporting] = useState(false);
 
@@ -65,7 +68,7 @@ export function ExportDialog({ open, onClose, skills, agents, rules }: ExportDia
 
   const handleExport = async () => {
     if (selected.size === 0) {
-      toast("Select at least one item to export", "error");
+      toast(isZh ? "请至少选择一项导出" : "Select at least one item to export", "error");
       return;
     }
 
@@ -86,7 +89,7 @@ export function ExportDialog({ open, onClose, skills, agents, rules }: ExportDia
 
       const data = await res.json();
       if (!res.ok) {
-        toast(data.error || "Export failed", "error");
+        toast(data.error || (isZh ? "导出失败" : "Export failed"), "error");
         return;
       }
 
@@ -101,13 +104,13 @@ export function ExportDialog({ open, onClose, skills, agents, rules }: ExportDia
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      toast(`Exported ${bundle.items.length} item(s)`, "success");
+      toast(isZh ? `已导出 ${bundle.items.length} 项` : `Exported ${bundle.items.length} item(s)`, "success");
       if (data.errors?.length > 0) {
-        toast(`Warnings: ${data.errors.join(", ")}`, "error");
+        toast(`${isZh ? "警告" : "Warnings"}: ${data.errors.join(", ")}`, "error");
       }
       onClose();
     } catch {
-      toast("Export failed", "error");
+      toast(isZh ? "导出失败" : "Export failed", "error");
     } finally {
       setExporting(false);
     }
@@ -131,7 +134,7 @@ export function ExportDialog({ open, onClose, skills, agents, rules }: ExportDia
         <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0">
           <h2 className="text-lg font-bold flex items-center gap-2">
             <Download className="h-5 w-5 text-primary" />
-            Export Toolbox Bundle
+            {isZh ? "导出工具包" : "Export Toolbox Bundle"}
           </h2>
           <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={onClose}>
             <X className="h-4 w-4" />
@@ -148,17 +151,17 @@ export function ExportDialog({ open, onClose, skills, agents, rules }: ExportDia
             ) : (
               <Square className="h-4 w-4" />
             )}
-            Select all ({allItems.length})
+            {isZh ? `全选 (${allItems.length})` : `Select all (${allItems.length})`}
           </button>
           <Badge variant="secondary" className="text-xs">
-            {selected.size} selected
+            {isZh ? `已选 ${selected.size} 项` : `${selected.size} selected`}
           </Badge>
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-2">
           {allItems.length === 0 ? (
             <p className="text-sm text-muted-foreground py-8 text-center">
-              No items to export. Add skills, agents, or rules first.
+              {isZh ? "没有可导出的项目。请先添加技能、代理或规则。" : "No items to export. Add skills, agents, or rules first."}
             </p>
           ) : (
             <div className="space-y-1">
@@ -190,7 +193,7 @@ export function ExportDialog({ open, onClose, skills, agents, rules }: ExportDia
         </div>
 
         <div className="px-6 py-4 border-t flex justify-end gap-2 flex-shrink-0">
-          <Button variant="outline" size="sm" onClick={onClose}>Cancel</Button>
+          <Button variant="outline" size="sm" onClick={onClose}>{isZh ? "取消" : "Cancel"}</Button>
           <Button
             size="sm"
             onClick={handleExport}
@@ -198,7 +201,7 @@ export function ExportDialog({ open, onClose, skills, agents, rules }: ExportDia
             className="gap-1.5"
           >
             {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
-            Export {selected.size > 0 ? `(${selected.size})` : ""}
+            {isZh ? "导出" : "Export"} {selected.size > 0 ? `(${selected.size})` : ""}
           </Button>
         </div>
       </div>
@@ -218,6 +221,8 @@ type ImportTab = "file" | "url" | "paste";
 
 export function ImportDialog({ open, onClose, onSuccess }: ImportDialogProps) {
   const { toast } = useToast();
+  const locale = useLocale();
+  const isZh = locale === "zh-CN";
   const [tab, setTab] = useState<ImportTab>("file");
   const [bundleData, setBundleData] = useState<ExportBundle | null>(null);
   const [pasteContent, setPasteContent] = useState("");
@@ -252,13 +257,13 @@ export function ImportDialog({ open, onClose, onSuccess }: ImportDialogProps) {
       try {
         const data = JSON.parse(ev.target?.result as string);
         if (!data.version || !Array.isArray(data.items)) {
-          toast("Invalid bundle format", "error");
+          toast(isZh ? "无效的包格式" : "Invalid bundle format", "error");
           return;
         }
         setBundleData(data);
         setResult(null);
       } catch {
-        toast("Failed to parse JSON file", "error");
+        toast(isZh ? "解析 JSON 文件失败" : "Failed to parse JSON file", "error");
       }
     };
     reader.readAsText(file);
@@ -270,13 +275,13 @@ export function ImportDialog({ open, onClose, onSuccess }: ImportDialogProps) {
     try {
       const data = JSON.parse(pasteContent);
       if (!data.version || !Array.isArray(data.items)) {
-        toast("Invalid bundle format", "error");
+        toast(isZh ? "无效的包格式" : "Invalid bundle format", "error");
         return;
       }
       setBundleData(data);
       setResult(null);
     } catch {
-      toast("Invalid JSON content", "error");
+      toast(isZh ? "无效的 JSON 内容" : "Invalid JSON content", "error");
     }
   };
 
@@ -286,7 +291,7 @@ export function ImportDialog({ open, onClose, onSuccess }: ImportDialogProps) {
     try {
       new URL(urlInput);
     } catch {
-      toast("Invalid URL format", "error");
+      toast(isZh ? "无效的 URL 格式" : "Invalid URL format", "error");
       return;
     }
 
@@ -296,7 +301,7 @@ export function ImportDialog({ open, onClose, onSuccess }: ImportDialogProps) {
       const data = await res.json();
 
       if (!res.ok) {
-        toast(data.error || "Failed to fetch bundle", "error");
+        toast(data.error || (isZh ? "获取包失败" : "Failed to fetch bundle"), "error");
         return;
       }
 
@@ -304,10 +309,10 @@ export function ImportDialog({ open, onClose, onSuccess }: ImportDialogProps) {
         setBundleData(data.bundle);
         setResult(null);
       } else {
-        toast("No valid bundle found at URL", "error");
+        toast(isZh ? "URL 中未找到有效的包" : "No valid bundle found at URL", "error");
       }
     } catch {
-      toast("Failed to fetch bundle from URL", "error");
+      toast(isZh ? "从 URL 获取包失败" : "Failed to fetch bundle from URL", "error");
     } finally {
       setFetching(false);
     }
@@ -328,20 +333,20 @@ export function ImportDialog({ open, onClose, onSuccess }: ImportDialogProps) {
       const data = await res.json();
 
       if (!res.ok) {
-        toast(data.error || "Import failed", "error");
+        toast(data.error || (isZh ? "导入失败" : "Import failed"), "error");
         return;
       }
 
       setResult(data);
 
       if (data.imported > 0) {
-        toast(`Imported ${data.imported} item(s)`, "success");
+        toast(isZh ? `已导入 ${data.imported} 项` : `Imported ${data.imported} item(s)`, "success");
         onSuccess();
       } else if (data.skipped > 0) {
-        toast(`All ${data.skipped} item(s) already exist (skipped)`, "success");
+        toast(isZh ? `全部 ${data.skipped} 项已存在（已跳过）` : `All ${data.skipped} item(s) already exist (skipped)`, "success");
       }
     } catch {
-      toast("Import failed", "error");
+      toast(isZh ? "导入失败" : "Import failed", "error");
     } finally {
       setImporting(false);
     }
@@ -365,7 +370,7 @@ export function ImportDialog({ open, onClose, onSuccess }: ImportDialogProps) {
         <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0">
           <h2 className="text-lg font-bold flex items-center gap-2">
             <Upload className="h-5 w-5 text-primary" />
-            Import Toolbox Bundle
+            {isZh ? "导入工具包" : "Import Toolbox Bundle"}
           </h2>
           <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={handleClose}>
             <X className="h-4 w-4" />
@@ -378,9 +383,9 @@ export function ImportDialog({ open, onClose, onSuccess }: ImportDialogProps) {
             {/* Tab buttons */}
             <div className="flex gap-1 mb-4 bg-muted rounded-lg p-1">
               {([
-                { id: "file" as ImportTab, icon: FileUp, label: "File" },
+                { id: "file" as ImportTab, icon: FileUp, label: isZh ? "文件" : "File" },
                 { id: "url" as ImportTab, icon: Link, label: "URL" },
-                { id: "paste" as ImportTab, icon: Package, label: "Paste" },
+                { id: "paste" as ImportTab, icon: Package, label: isZh ? "粘贴" : "Paste" },
               ]).map(({ id, icon: Icon, label }) => (
                 <button
                   key={id}
@@ -410,8 +415,8 @@ export function ImportDialog({ open, onClose, onSuccess }: ImportDialogProps) {
                 >
                   <FileUp className="h-8 w-8" />
                   <div>
-                    <p className="text-sm font-medium">Click to select a JSON file</p>
-                    <p className="text-xs mt-1">or drag and drop (*.json)</p>
+                    <p className="text-sm font-medium">{isZh ? "点击选择 JSON 文件" : "Click to select a JSON file"}</p>
+                    <p className="text-xs mt-1">{isZh ? "或拖放文件 (*.json)" : "or drag and drop (*.json)"}</p>
                   </div>
                 </button>
               </div>
@@ -420,7 +425,7 @@ export function ImportDialog({ open, onClose, onSuccess }: ImportDialogProps) {
             {tab === "url" && (
               <div className="space-y-3">
                 <div>
-                  <label className="text-sm font-medium block mb-1.5">Bundle URL</label>
+                  <label className="text-sm font-medium block mb-1.5">{isZh ? "包 URL" : "Bundle URL"}</label>
                   <input
                     type="text"
                     className="w-full px-3 py-2 border rounded-md text-sm font-mono bg-background"
@@ -437,7 +442,7 @@ export function ImportDialog({ open, onClose, onSuccess }: ImportDialogProps) {
                   className="gap-1.5"
                 >
                   {fetching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Link className="h-3.5 w-3.5" />}
-                  Fetch Bundle
+                  {isZh ? "获取包" : "Fetch Bundle"}
                 </Button>
               </div>
             )}
@@ -445,7 +450,7 @@ export function ImportDialog({ open, onClose, onSuccess }: ImportDialogProps) {
             {tab === "paste" && (
               <div className="space-y-3">
                 <div>
-                  <label className="text-sm font-medium block mb-1.5">Paste JSON</label>
+                  <label className="text-sm font-medium block mb-1.5">{isZh ? "粘贴 JSON" : "Paste JSON"}</label>
                   <textarea
                     className="w-full px-3 py-2 border rounded-md text-xs font-mono bg-background resize-none h-40"
                     placeholder='{"version": "1.0", "items": [...]}'
@@ -460,7 +465,7 @@ export function ImportDialog({ open, onClose, onSuccess }: ImportDialogProps) {
                   className="gap-1.5"
                 >
                   <Package className="h-3.5 w-3.5" />
-                  Load Bundle
+                  {isZh ? "加载包" : "Load Bundle"}
                 </Button>
               </div>
             )}
@@ -470,10 +475,10 @@ export function ImportDialog({ open, onClose, onSuccess }: ImportDialogProps) {
           <>
             <div className="px-6 py-3 border-b flex items-center justify-between flex-shrink-0">
               <div className="text-sm">
-                <span className="font-medium">{bundleData.items.length} item(s)</span>
+                <span className="font-medium">{isZh ? `${bundleData.items.length} 项` : `${bundleData.items.length} item(s)`}</span>
                 {bundleData.exported_at && (
                   <span className="text-muted-foreground ml-2">
-                    exported {new Date(bundleData.exported_at).toLocaleDateString()}
+                    {isZh ? "导出于" : "exported"} {new Date(bundleData.exported_at).toLocaleDateString()}
                   </span>
                 )}
               </div>
@@ -483,7 +488,7 @@ export function ImportDialog({ open, onClose, onSuccess }: ImportDialogProps) {
                 className="text-xs h-7"
                 onClick={() => { setBundleData(null); setResult(null); }}
               >
-                Change source
+                {isZh ? "更换来源" : "Change source"}
               </Button>
             </div>
 
@@ -516,7 +521,7 @@ export function ImportDialog({ open, onClose, onSuccess }: ImportDialogProps) {
                   onChange={(e) => setOverwrite(e.target.checked)}
                   className="h-4 w-4 rounded"
                 />
-                <span className="text-sm">Overwrite existing items</span>
+                <span className="text-sm">{isZh ? "覆盖已有项目" : "Overwrite existing items"}</span>
               </label>
 
               {/* Result */}
@@ -525,13 +530,13 @@ export function ImportDialog({ open, onClose, onSuccess }: ImportDialogProps) {
                   {result.imported > 0 && (
                     <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
                       <Check className="h-4 w-4" />
-                      {result.imported} imported
+                      {isZh ? `${result.imported} 项已导入` : `${result.imported} imported`}
                     </div>
                   )}
                   {result.skipped > 0 && (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <AlertCircle className="h-4 w-4" />
-                      {result.skipped} skipped (already exist)
+                      {isZh ? `${result.skipped} 项已跳过（已存在）` : `${result.skipped} skipped (already exist)`}
                     </div>
                   )}
                   {result.errors.map((err, i) => (
@@ -546,7 +551,7 @@ export function ImportDialog({ open, onClose, onSuccess }: ImportDialogProps) {
 
             <div className="px-6 py-4 border-t flex justify-end gap-2 flex-shrink-0">
               <Button variant="outline" size="sm" onClick={handleClose}>
-                {result ? "Done" : "Cancel"}
+                {result ? (isZh ? "完成" : "Done") : (isZh ? "取消" : "Cancel")}
               </Button>
               {!result && (
                 <Button
@@ -556,7 +561,7 @@ export function ImportDialog({ open, onClose, onSuccess }: ImportDialogProps) {
                   className="gap-1.5"
                 >
                   {importing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
-                  Import {bundleData.items.length} item(s)
+                  {isZh ? `导入 ${bundleData.items.length} 项` : `Import ${bundleData.items.length} item(s)`}
                 </Button>
               )}
             </div>

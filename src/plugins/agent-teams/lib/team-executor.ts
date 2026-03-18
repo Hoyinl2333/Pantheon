@@ -167,8 +167,7 @@ export class TeamExecutor extends BaseExecutor<AgentNode, AgentEdge> {
     this.results.set(node.id, result);
 
     // Store output in run record
-    this.runRecord.nodeOutputs = this.runRecord.nodeOutputs ?? {};
-    this.runRecord.nodeOutputs[node.id] = result.output;
+    this.runRecord.nodeOutputs![node.id] = result.output;
 
     // Update run record
     this.runRecord.nodeStatuses[node.id] = "done";

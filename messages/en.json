@@ -934,12 +934,27 @@
       "earlierEntries": "earlier entries",
       "cost": "Cost",
       "members": "members",
+      "agentOutputs": "Agent Outputs",
+      "pending": "Pending...",
+      "showMore": "More",
+      "showLess": "Less",
+      "outputs": "Outputs",
       "status": {
         "completed": "Completed",
         "error": "Error",
         "aborted": "Aborted",
         "running": "Running"
       }
+    },
+    "contextMenu": {
+      "edit": "Edit",
+      "duplicate": "Duplicate",
+      "delete": "Delete"
+    },
+    "edgeLegend": {
+      "data": "Data",
+      "control": "Control",
+      "review": "Review"
     },
     "card": {
       "members": "members",

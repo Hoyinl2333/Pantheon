@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/toast";
+import { useLocale } from "@/i18n/provider";
 import { X, Wand2 } from "lucide-react";
 import {
   AiCreatorDialogProps,
@@ -20,8 +21,17 @@ import { AiCreatorGenerating } from "./ai-creator-generating";
 import { AiCreatorPreview } from "./ai-creator-preview";
 import { AiCreatorFooter } from "./ai-creator-footer";
 
+const TYPE_LABELS_ZH: Record<CreatorType, string> = {
+  skill: "技能",
+  agent: "Agent",
+  rule: "规则",
+  hook: "Hook",
+};
+
 export function AiCreatorDialog({ open, onClose, onSuccess, defaultType = "skill" }: AiCreatorDialogProps) {
   const { toast } = useToast();
+  const { locale } = useLocale();
+  const isZh = locale === "zh-CN";
 
   const [step, setStep] = useState<Step>("input");
   const [type, setType] = useState<CreatorType>(defaultType);
@@ -71,7 +81,7 @@ export function AiCreatorDialog({ open, onClose, onSuccess, defaultType = "skill
 
   const handleGenerate = useCallback(async () => {
     if (!description.trim()) {
-      toast("Please describe what you want to create", "error");
+      toast(isZh ? "请描述你想创建什么" : "Please describe what you want to create", "error");
       return;
     }
 
@@ -90,8 +100,8 @@ export function AiCreatorDialog({ open, onClose, onSuccess, defaultType = "skill
       });
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: "Request failed" }));
-        toast(err.error || "Generation failed", "error");
+        const err = await res.json().catch(() => ({ error: isZh ? "请求失败" : "Request failed" }));
+        toast(err.error || (isZh ? "生成失败" : "Generation failed"), "error");
         setStep("input");
         return;
       }
@@ -132,7 +142,10 @@ export function AiCreatorDialog({ open, onClose, onSuccess, defaultType = "skill
             }
 
             if (event.type === "error") {
-              toast(`Generation error: ${event.error}`, "error");
+              toast(
+                isZh ? `生成错误: ${event.error}` : `Generation error: ${event.error}`,
+                "error"
+              );
               setStep("input");
               return;
             }
@@ -152,30 +165,36 @@ export function AiCreatorDialog({ open, onClose, onSuccess, defaultType = "skill
           if (extracted) setName(extracted);
         }
       } else {
-        toast("No content generated. Please try again.", "error");
+        toast(isZh ? "未生成内容。请重试。" : "No content generated. Please try again.", "error");
         setStep("input");
       }
     } catch (err) {
       if ((err as Error).name === "AbortError") return;
-      toast("Failed to connect to Claude. Is the CLI installed?", "error");
+      toast(
+        isZh ? "无法连接到 Claude。CLI 是否已安装？" : "Failed to connect to Claude. Is the CLI installed?",
+        "error"
+      );
       setStep("input");
     } finally {
       abortRef.current = null;
     }
-  }, [description, type, name, toast]);
+  }, [description, type, name, toast, isZh]);
 
   const handleSave = useCallback(async () => {
     if (!name.trim()) {
-      toast("Please provide a name", "error");
+      toast(isZh ? "请提供名称" : "Please provide a name", "error");
       return;
     }
     if (!generatedContent.trim()) {
-      toast("No content to save", "error");
+      toast(isZh ? "没有可保存的内容" : "No content to save", "error");
       return;
     }
 
     if (/[/\\.]/.test(name)) {
-      toast("Name must not contain /, \\, or . characters", "error");
+      toast(
+        isZh ? "名称不能包含 /、\\ 或 . 字符" : "Name must not contain /, \\, or . characters",
+        "error"
+      );
       return;
     }
 
@@ -205,22 +224,26 @@ export function AiCreatorDialog({ open, onClose, onSuccess, defaultType = "skill
       const data = await res.json();
 
       if (res.ok) {
-        toast(data.message || `${TYPE_CONFIG[type].label} created successfully`, "success");
+        const typeLabel = isZh ? TYPE_LABELS_ZH[type] : TYPE_CONFIG[type].label;
+        toast(
+          data.message || (isZh ? `${typeLabel}创建成功` : `${typeLabel} created successfully`),
+          "success"
+        );
         onSuccess();
         onClose();
       } else {
-        toast(data.error || "Save failed", "error");
+        toast(data.error || (isZh ? "保存失败" : "Save failed"), "error");
       }
     } catch {
-      toast("Failed to save", "error");
+      toast(isZh ? "保存失败" : "Failed to save", "error");
     } finally {
       setSaving(false);
     }
-  }, [name, generatedContent, type, ruleGroup, toast, onSuccess, onClose]);
+  }, [name, generatedContent, type, ruleGroup, toast, onSuccess, onClose, isZh]);
 
   const handleSaveHook = useCallback(async () => {
     if (!hookCommand.trim()) {
-      toast("Please provide a command", "error");
+      toast(isZh ? "请提供命令" : "Please provide a command", "error");
       return;
     }
     setSaving(true);
@@ -240,18 +263,21 @@ export function AiCreatorDialog({ open, onClose, onSuccess, defaultType = "skill
       });
       const data = await res.json();
       if (res.ok) {
-        toast(data.message || "Hook created successfully", "success");
+        toast(
+          data.message || (isZh ? "Hook 创建成功" : "Hook created successfully"),
+          "success"
+        );
         onSuccess();
         onClose();
       } else {
-        toast(data.error || "Save failed", "error");
+        toast(data.error || (isZh ? "保存失败" : "Save failed"), "error");
       }
     } catch {
-      toast("Failed to save hook", "error");
+      toast(isZh ? "保存 Hook 失败" : "Failed to save hook", "error");
     } finally {
       setSaving(false);
     }
-  }, [hookType, hookCommand, hookMatcher, hookTimeout, hookDescription, toast, onSuccess, onClose]);
+  }, [hookType, hookCommand, hookMatcher, hookTimeout, hookDescription, toast, onSuccess, onClose, isZh]);
 
   if (!open) return null;
 
@@ -267,11 +293,11 @@ export function AiCreatorDialog({ open, onClose, onSuccess, defaultType = "skill
         <div className="flex items-center justify-between px-6 py-4 border-b shrink-0">
           <h2 className="text-lg font-bold flex items-center gap-2">
             <Wand2 className="h-5 w-5 text-primary" />
-            AI Creator
+            {isZh ? "AI 创建器" : "AI Creator"}
             {step !== "input" && (
               <Badge variant="secondary" className="ml-2 gap-1">
                 <TypeIcon className={`h-3 w-3 ${TYPE_CONFIG[type].color}`} />
-                {TYPE_CONFIG[type].label}
+                {isZh ? TYPE_LABELS_ZH[type] : TYPE_CONFIG[type].label}
               </Badge>
             )}
           </h2>

@@ -1,8 +1,16 @@
 "use client";
 
 import { Eye, Pencil } from "lucide-react";
+import { useLocale } from "@/i18n/provider";
 import { MarkdownContent } from "@/components/markdown-content";
 import { CreatorType, TYPE_CONFIG } from "./ai-creator-types";
+
+const TYPE_LABELS_ZH: Record<CreatorType, string> = {
+  skill: "技能",
+  agent: "Agent",
+  rule: "规则",
+  hook: "Hook",
+};
 
 interface AiCreatorPreviewProps {
   type: CreatorType;
@@ -27,12 +35,17 @@ export function AiCreatorPreview({
   previewMode,
   setPreviewMode,
 }: AiCreatorPreviewProps) {
+  const { locale } = useLocale();
+  const isZh = locale === "zh-CN";
+
+  const typeLabel = isZh ? TYPE_LABELS_ZH[type] : TYPE_CONFIG[type].label;
+
   return (
     <>
       {/* Name (required before save) */}
       <div>
         <label className="text-sm font-medium block mb-1.5">
-          {TYPE_CONFIG[type].label} Name *
+          {isZh ? `${typeLabel}名称 *` : `${typeLabel} Name *`}
         </label>
         <input
           type="text"
@@ -43,9 +56,15 @@ export function AiCreatorPreview({
         />
         <p className="text-xs text-muted-foreground mt-1">
           {type === "skill"
-            ? `Will be saved as ~/.claude/skills/${name || "skill-name"}/SKILL.md`
+            ? isZh
+              ? `将保存为 ~/.claude/skills/${name || "skill-name"}/SKILL.md`
+              : `Will be saved as ~/.claude/skills/${name || "skill-name"}/SKILL.md`
             : type === "agent"
-            ? `Will be saved as ~/.claude/agents/${name || "agent-name"}.md`
+            ? isZh
+              ? `将保存为 ~/.claude/agents/${name || "agent-name"}.md`
+              : `Will be saved as ~/.claude/agents/${name || "agent-name"}.md`
+            : isZh
+            ? `将保存为 ~/.claude/rules/${ruleGroup}/${name || "rule-name"}.md`
             : `Will be saved as ~/.claude/rules/${ruleGroup}/${name || "rule-name"}.md`}
         </p>
       </div>
@@ -53,7 +72,9 @@ export function AiCreatorPreview({
       {/* Rule group (editable in preview too) */}
       {type === "rule" && (
         <div>
-          <label className="text-sm font-medium block mb-1.5">Rule Group</label>
+          <label className="text-sm font-medium block mb-1.5">
+            {isZh ? "规则组" : "Rule Group"}
+          </label>
           <input
             type="text"
             className="w-full px-3 py-2 border rounded-md text-sm font-mono bg-background"
@@ -67,7 +88,9 @@ export function AiCreatorPreview({
       {/* Content with edit/preview toggle */}
       <div>
         <div className="flex items-center justify-between mb-1.5">
-          <label className="text-sm font-medium">Generated Content</label>
+          <label className="text-sm font-medium">
+            {isZh ? "生成的内容" : "Generated Content"}
+          </label>
           <div className="flex rounded-md border overflow-hidden">
             <button
               className={`px-3 py-1 text-xs flex items-center gap-1 transition-colors ${
@@ -75,7 +98,7 @@ export function AiCreatorPreview({
               }`}
               onClick={() => setPreviewMode(false)}
             >
-              <Pencil className="h-3 w-3" /> Edit
+              <Pencil className="h-3 w-3" /> {isZh ? "编辑" : "Edit"}
             </button>
             <button
               className={`px-3 py-1 text-xs flex items-center gap-1 transition-colors ${
@@ -83,7 +106,7 @@ export function AiCreatorPreview({
               }`}
               onClick={() => setPreviewMode(true)}
             >
-              <Eye className="h-3 w-3" /> Preview
+              <Eye className="h-3 w-3" /> {isZh ? "预览" : "Preview"}
             </button>
           </div>
         </div>

@@ -2,6 +2,7 @@
 
 import { MutableRefObject } from "react";
 import { Button } from "@/components/ui/button";
+import { useLocale } from "@/i18n/provider";
 import {
   Loader2,
   Wand2,
@@ -9,6 +10,13 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { CreatorType, Step, TYPE_CONFIG } from "./ai-creator-types";
+
+const TYPE_LABELS_ZH: Record<CreatorType, string> = {
+  skill: "技能",
+  agent: "Agent",
+  rule: "规则",
+  hook: "Hook",
+};
 
 interface AiCreatorFooterProps {
   step: Step;
@@ -40,6 +48,11 @@ export function AiCreatorFooter({
   onRegenerate,
   onCancelGeneration,
 }: AiCreatorFooterProps) {
+  const { locale } = useLocale();
+  const isZh = locale === "zh-CN";
+
+  const typeLabel = isZh ? TYPE_LABELS_ZH[type] : TYPE_CONFIG[type].label;
+
   return (
     <div className="px-6 py-4 border-t flex items-center justify-between shrink-0">
       <div>
@@ -51,13 +64,13 @@ export function AiCreatorFooter({
             onClick={onRegenerate}
           >
             <RotateCcw className="h-3.5 w-3.5" />
-            Regenerate
+            {isZh ? "重新生成" : "Regenerate"}
           </Button>
         )}
       </div>
       <div className="flex gap-2">
         <Button variant="outline" size="sm" onClick={onClose} disabled={saving}>
-          Cancel
+          {isZh ? "取消" : "Cancel"}
         </Button>
         {step === "input" && type !== "hook" && (
           <Button
@@ -67,7 +80,7 @@ export function AiCreatorFooter({
             disabled={!description.trim()}
           >
             <Wand2 className="h-3.5 w-3.5" />
-            Generate
+            {isZh ? "生成" : "Generate"}
           </Button>
         )}
         {step === "input" && type === "hook" && (
@@ -80,12 +93,12 @@ export function AiCreatorFooter({
             {saving ? (
               <>
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Saving...
+                {isZh ? "保存中..." : "Saving..."}
               </>
             ) : (
               <>
                 <Save className="h-3.5 w-3.5" />
-                Create Hook
+                {isZh ? "创建 Hook" : "Create Hook"}
               </>
             )}
           </Button>
@@ -96,7 +109,7 @@ export function AiCreatorFooter({
             size="sm"
             onClick={onCancelGeneration}
           >
-            Cancel Generation
+            {isZh ? "取消生成" : "Cancel Generation"}
           </Button>
         )}
         {step === "preview" && (
@@ -109,12 +122,12 @@ export function AiCreatorFooter({
             {saving ? (
               <>
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Saving...
+                {isZh ? "保存中..." : "Saving..."}
               </>
             ) : (
               <>
                 <Save className="h-3.5 w-3.5" />
-                Save {TYPE_CONFIG[type].label}
+                {isZh ? `保存${typeLabel}` : `Save ${typeLabel}`}
               </>
             )}
           </Button>
