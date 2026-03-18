@@ -1,8 +1,8 @@
 /**
- * ARIS Research Plugin
+ * SAGE Plugin
  *
- * Autonomous ML Research Pipeline (Auto-claude-code-research-in-sleep).
- * Provides 27 Claude Code skills for end-to-end research workflows:
+ * Smart Autonomous Generation Engine — autonomous ML research pipeline
+ * with 27 Claude Code skills for end-to-end research workflows:
  * idea discovery, experiments, review loops, and paper writing.
  */
 
@@ -13,18 +13,18 @@ import { FlaskConical } from "lucide-react";
 export const plugin: PluginModule = {
   manifest: {
     id: "aris-research",
-    name: "ARIS Research",
+    name: "SAGE",
     version: "1.0.0",
-    description: "Autonomous ML Research Pipeline (Auto-claude-code-research-in-sleep)",
-    author: "ARIS / SCC",
+    description: "Smart Autonomous Generation Engine — autonomous ML research pipeline with 27 Claude Code skills",
+    author: "Pantheon Team",
     icon: FlaskConical,
     routes: [
-      { path: "", title: "ARIS Research" },
+      { path: "", title: "SAGE" },
     ],
     sidebarItems: [
       {
         path: "",
-        label: "ARIS Research",
+        label: "SAGE",
         icon: FlaskConical,
         order: 3,
       },
@@ -36,10 +36,10 @@ export const plugin: PluginModule = {
   },
 
   onLoad: async () => {
-    console.log("[Plugin] ARIS Research loaded");
+    console.log("[Plugin] SAGE loaded");
   },
 
   onUnload: async () => {
-    console.log("[Plugin] ARIS Research unloaded");
+    console.log("[Plugin] SAGE unloaded");
   },
 };

@@ -26,7 +26,7 @@ import {
   PauseCircle,
   Clock,
 } from "lucide-react";
-import { SKILLS_BY_CATEGORY, CATEGORY_META, ARIS_SKILLS } from "../skill-data";
+import { SKILLS_BY_CATEGORY, CATEGORY_META, RESEARCH_SKILLS } from "../skill-data";
 import type { SkillCategory, ArisSkill } from "../types";
 
 // ---------------------------------------------------------------------------
@@ -419,7 +419,7 @@ function OverviewTab({
     <ScrollArea className="h-full">
       <div className="p-1 space-y-0.5">
         {nodes.map((node) => {
-          const skill = ARIS_SKILLS.find((s) => s.id === node.skillId);
+          const skill = RESEARCH_SKILLS.find((s) => s.id === node.skillId);
           const skillName = skill
             ? isZh
               ? skill.nameZh

@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { fmtCost, fmtTokens, shortModel } from "@/lib/format-utils";
 import type { SessionMessage } from "./types";
+import { FileDiffView } from "./file-diff-view";
 
 // Tool Configuration
 export const TOOL_CONFIG: Record<string, {
@@ -170,61 +171,14 @@ export const ConvMessage = memo(function ConvMessage({ msg, showTools, searchHig
                   {/* Expanded content */}
                   {isExpanded && tool.input && (
                     <div className="px-2.5 pb-2 pt-0 border-t border-current/10">
-                      {/* Special handling for specific tool types */}
-                      {tool.name === "Bash" && parsedInput.command ? (
-                        <div className="mt-1.5">
-                          <div className="text-[10px] text-muted-foreground mb-1">Command:</div>
-                          <div className="bg-black/90 dark:bg-black/60 text-green-400 px-2 py-1.5 rounded font-mono text-xs">
-                            $ {parsedInput.command}
-                          </div>
-                        </div>
-                      ) : tool.name === "Edit" && parsedInput.old_string && parsedInput.new_string ? (
-                        <div className="mt-1.5 space-y-1.5">
-                          {parsedInput.file_path && (
-                            <div>
-                              <div className="text-[10px] text-muted-foreground">File:</div>
-                              <div className="font-mono text-xs">{parsedInput.file_path}</div>
-                            </div>
-                          )}
-                          <div>
-                            <div className="text-[10px] text-muted-foreground mb-0.5">Changes:</div>
-                            <pre className="bg-red-50 dark:bg-red-950/30 border-l-2 border-red-400 px-2 py-1 font-mono text-xs text-red-700 dark:text-red-400 whitespace-pre-wrap break-words max-h-48 overflow-y-auto">
-                              {parsedInput.old_string.split("\n").map((line: string, li: number) => (
-                                <div key={li}>- {line}</div>
-                              ))}
-                            </pre>
-                            <pre className="bg-green-50 dark:bg-green-950/30 border-l-2 border-green-400 px-2 py-1 font-mono text-xs text-green-700 dark:text-green-400 mt-0.5 whitespace-pre-wrap break-words max-h-48 overflow-y-auto">
-                              {parsedInput.new_string.split("\n").map((line: string, li: number) => (
-                                <div key={li}>+ {line}</div>
-                              ))}
-                            </pre>
-                          </div>
-                        </div>
-                      ) : tool.name === "Read" && parsedInput.file_path ? (
-                        <div className="mt-1.5">
-                          <div className="text-[10px] text-muted-foreground mb-1">File path:</div>
-                          <div className="font-mono text-xs">{parsedInput.file_path}</div>
-                          {(parsedInput.offset || parsedInput.limit) && (
-                            <div className="text-[10px] text-muted-foreground mt-1">
-                              Lines: {parsedInput.offset || 0} - {(parsedInput.offset || 0) + (parsedInput.limit || "all")}
-                            </div>
-                          )}
-                        </div>
-                      ) : tool.name === "Write" && parsedInput.file_path ? (
-                        <div className="mt-1.5">
-                          <div className="text-[10px] text-muted-foreground mb-1">File path:</div>
-                          <div className="font-mono text-xs">{parsedInput.file_path}</div>
-                          {parsedInput.content && (
-                            <div className="mt-1">
-                              <div className="text-[10px] text-muted-foreground mb-0.5">Content preview:</div>
-                              <div className="bg-muted/40 px-2 py-1 font-mono text-xs max-h-20 overflow-hidden">
-                                {parsedInput.content.slice(0, 200)}...
-                              </div>
-                            </div>
-                          )}
-                        </div>
+                      {(tool.name === "Edit" || tool.name === "Bash" || tool.name === "Read" || tool.name === "Write") ? (
+                        <FileDiffView
+                          toolName={tool.name}
+                          input={parsedInput}
+                          isZh={typeof navigator !== "undefined" && navigator.language?.startsWith("zh")}
+                        />
                       ) : (
-                        // Generic JSON display
+                        // Generic JSON display for other tools
                         <pre className="mt-1.5 text-[11px] font-mono text-muted-foreground whitespace-pre-wrap break-words max-h-32 overflow-y-auto">
                           {tool.input.slice(0, 500)}
                         </pre>

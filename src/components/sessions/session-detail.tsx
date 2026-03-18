@@ -9,11 +9,13 @@ import { TerminalView } from "@/components/terminal-view";
 import {
   RefreshCw, ArrowLeft, Wrench, ChevronsUp, ChevronsDown, MapPin,
   FileText, DollarSign, Search, X, Monitor, SquareTerminal, Download, BarChart3, Star, MessageCircle, Copy, Check,
+  GitCompareArrows,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { fmtCost, fmtTokens, shortModel } from "@/lib/format-utils";
 import { ConvMessage } from "./conv-message";
 import { SessionAnalytics } from "./session-analytics";
+import { ToolCallSummary } from "./tool-call-summary";
 import type { SessionDetail, FilePreview } from "./types";
 import { useToast } from "@/components/toast";
 import { useFavorites } from "@/hooks/use-favorites";
@@ -30,6 +32,7 @@ export function SessionDetailView({ projectPath, sessionId, onBack }: {
   const [showCheckpoints, setShowCheckpoints] = useState(false);
   const [showFiles, setShowFiles] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
+  const [showChanges, setShowChanges] = useState(false);
   const [previewFile, setPreviewFile] = useState<FilePreview | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [convSearchInput, setConvSearchInput] = useState("");
@@ -222,15 +225,18 @@ export function SessionDetailView({ projectPath, sessionId, onBack }: {
           <Button variant={showTools ? "default" : "outline"} size="sm" className="text-xs h-7" onClick={() => setShowTools(!showTools)}>
             <Wrench className="h-3 w-3 mr-1" />{t("tools")}
           </Button>
-          <Button variant={showCheckpoints ? "default" : "outline"} size="sm" className="text-xs h-7" onClick={() => { setShowCheckpoints(!showCheckpoints); setShowFiles(false); setShowAnalytics(false); }}>
+          <Button variant={showCheckpoints ? "default" : "outline"} size="sm" className="text-xs h-7" onClick={() => { setShowCheckpoints(!showCheckpoints); setShowFiles(false); setShowAnalytics(false); setShowChanges(false); }}>
             <MapPin className="h-3 w-3 mr-1" />{t("checkpoints")} ({detail.checkpoints.length})
           </Button>
           {detail.contextFiles.length > 0 && (
-            <Button variant={showFiles ? "default" : "outline"} size="sm" className="text-xs h-7" onClick={() => { setShowFiles(!showFiles); setShowCheckpoints(false); setShowAnalytics(false); }}>
+            <Button variant={showFiles ? "default" : "outline"} size="sm" className="text-xs h-7" onClick={() => { setShowFiles(!showFiles); setShowCheckpoints(false); setShowAnalytics(false); setShowChanges(false); }}>
               <FileText className="h-3 w-3 mr-1" />{t("files")} ({detail.contextFiles.length})
             </Button>
           )}
-          <Button variant={showAnalytics ? "default" : "outline"} size="sm" className="text-xs h-7" onClick={() => { setShowAnalytics(!showAnalytics); setShowCheckpoints(false); setShowFiles(false); }}>
+          <Button variant={showChanges ? "default" : "outline"} size="sm" className="text-xs h-7" onClick={() => { setShowChanges(!showChanges); setShowCheckpoints(false); setShowFiles(false); setShowAnalytics(false); }}>
+            <GitCompareArrows className="h-3 w-3 mr-1" />{t("changes")}
+          </Button>
+          <Button variant={showAnalytics ? "default" : "outline"} size="sm" className="text-xs h-7" onClick={() => { setShowAnalytics(!showAnalytics); setShowCheckpoints(false); setShowFiles(false); setShowChanges(false); }}>
             <BarChart3 className="h-3 w-3 mr-1" />{t("analytics")}
           </Button>
           <Button
@@ -309,9 +315,9 @@ export function SessionDetailView({ projectPath, sessionId, onBack }: {
 
       {/* Card View Mode */}
       {viewMode === "card" && (<div className="flex flex-1 overflow-hidden">
-        {/* Sidebar: checkpoints, files, or analytics */}
-        {(showCheckpoints || showFiles || showAnalytics) && (
-          <div className="w-64 border-r overflow-auto bg-muted/5 flex-shrink-0">
+        {/* Sidebar: checkpoints, files, changes, or analytics */}
+        {(showCheckpoints || showFiles || showAnalytics || showChanges) && (
+          <div className={`${showChanges ? "w-80" : "w-64"} border-r overflow-hidden bg-muted/5 flex-shrink-0 flex flex-col`}>
             {showCheckpoints && (
               <div className="p-2 space-y-1">
                 <div className="text-xs font-medium text-muted-foreground px-2 py-1">{t("userCheckpoints")}</div>
@@ -344,6 +350,12 @@ export function SessionDetailView({ projectPath, sessionId, onBack }: {
               </div>
             )}
             {showAnalytics && <SessionAnalytics detail={detail} />}
+            {showChanges && (
+              <ToolCallSummary
+                messages={detail.messages}
+                isZh={typeof navigator !== "undefined" && navigator.language?.startsWith("zh")}
+              />
+            )}
           </div>
         )}
 

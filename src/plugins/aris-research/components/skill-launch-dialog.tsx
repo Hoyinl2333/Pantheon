@@ -33,7 +33,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import type { ArisSkill, ArisParam, SkillCategory } from "../types";
-import { ARIS_SKILLS } from "../skill-data";
+import { RESEARCH_SKILLS } from "../skill-data";
 
 /** Map skill category to output directory and expected file patterns */
 const CATEGORY_OUTPUT: Record<SkillCategory, { dir: string; files: string }> = {
@@ -213,7 +213,7 @@ export function SkillLaunchDialog({
 
   // Find dependency skill names for display
   const depSkills = useMemo(
-    () => deps.map((id) => ARIS_SKILLS.find((s) => s.id === id)).filter(Boolean),
+    () => deps.map((id) => RESEARCH_SKILLS.find((s) => s.id === id)).filter(Boolean),
     [deps]
   );
 

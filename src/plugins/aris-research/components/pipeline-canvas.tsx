@@ -20,7 +20,7 @@ import {
 import "@xyflow/react/dist/style.css";
 
 import type { Pipeline, PipelineNode, PipelineEdge, ResearchProgram, NodeStatus } from "../types";
-import { ARIS_SKILLS } from "../skill-data";
+import { RESEARCH_SKILLS } from "../skill-data";
 import { autoLayout } from "../lib/auto-layout";
 import { PIPELINE_TEMPLATES } from "../pipeline-templates";
 import { savePipeline, getPipeline } from "../pipeline-store";
@@ -173,7 +173,7 @@ function PipelineCanvasInner({ locale, onBack }: { locale: string; onBack: () =>
         // Auto-fill 'topic' param in all nodes from research brief
         const briefTopic = config.program.brief.split("\n")[0].slice(0, 100).trim();
         const filledNodes = tpl.nodes.map((n) => {
-          const skill = ARIS_SKILLS.find((s) => s.id === n.skillId);
+          const skill = RESEARCH_SKILLS.find((s) => s.id === n.skillId);
           const topicParam = skill?.params?.find((p) => p.name === "topic" || p.name === "direction");
           if (topicParam && briefTopic) {
             return { ...n, paramValues: { ...n.paramValues, [topicParam.name]: briefTopic } };
@@ -225,7 +225,7 @@ function PipelineCanvasInner({ locale, onBack }: { locale: string; onBack: () =>
   const onDrop = useCallback((e: DragEvent) => {
     e.preventDefault();
     const skillId = e.dataTransfer.getData("application/aris-skill");
-    if (!skillId || !ARIS_SKILLS.find((s) => s.id === skillId)) return;
+    if (!skillId || !RESEARCH_SKILLS.find((s) => s.id === skillId)) return;
     const position = screenToFlowPosition({ x: e.clientX, y: e.clientY });
     setNodes((nds) => [...nds, {
       id: generateId(), type: "skill", position,
@@ -438,9 +438,10 @@ function PipelineCanvasInner({ locale, onBack }: { locale: string; onBack: () =>
     setCanResume(false);
     setExecutionStartTime(Date.now());
     executorActiveRef.current = true;
-    setPhase("execute");
 
-    // Create workspace
+    // Create workspace BEFORE switching to execute phase
+    let wsPath: string | null = null;
+    let wsName: string | null = null;
     try {
       const briefText = program.brief?.trim() ?? "";
       const isPlaceholder = !briefText || briefText.length < 5;
@@ -452,10 +453,15 @@ function PipelineCanvasInner({ locale, onBack }: { locale: string; onBack: () =>
       });
       const ws = await res.json();
       if (ws.path) {
+        wsPath = ws.path;
+        wsName = ws.name;
         setWorkspacePath(ws.path);
         setWorkspaceName(ws.name);
       }
     } catch { /* non-blocking */ }
+
+    // Switch to execute phase AFTER workspace is ready
+    setPhase("execute");
 
     const config = await getArisConfig();
     const executor = new PipelineExecutor(
@@ -463,6 +469,7 @@ function PipelineCanvasInner({ locale, onBack }: { locale: string; onBack: () =>
       createExecutionListener(() => { executorActiveRef.current = false; }),
       {
         maxParallel: 2,
+        workspacePath: wsPath ?? undefined,
         notifier: config.notifyEnabled
           ? {
               enabled: true,

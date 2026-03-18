@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 
-const DATA_DIR = path.join(os.homedir(), ".claude", "scc-data", "teams");
+const DATA_DIR = path.join(os.homedir(), ".claude", "ptn-data", "teams");
 const ALLOWED_KEYS = ["teams", "runs"];
 
 interface Envelope<T = unknown> {

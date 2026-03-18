@@ -52,7 +52,7 @@ function parseMessage(text: string, chatId: number, userId: number, userName: st
 export interface TelegramBotConfig {
   /** Telegram Bot API token */
   token: string;
-  /** Base URL of the SCC Dashboard (e.g., http://localhost:3000) */
+  /** Base URL of the Pantheon Dashboard (e.g., http://localhost:3000) */
   baseUrl: string;
   /** Optional: allowed chat IDs (empty = allow all) */
   allowedChatIds?: string[];
@@ -440,7 +440,7 @@ export function getTelegramBot(): TelegramBot | null {
   if (!token) return null;
 
   if (!botInstance) {
-    const baseUrl = process.env.SCC_BASE_URL || "http://localhost:3000";
+    const baseUrl = process.env.PTN_BASE_URL || "http://localhost:3000";
     const allowedChatIds = process.env.TELEGRAM_CHAT_IDS
       ? process.env.TELEGRAM_CHAT_IDS.split(",").map((s) => s.trim()).filter(Boolean)
       : chatId

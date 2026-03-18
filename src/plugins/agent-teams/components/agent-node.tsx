@@ -8,7 +8,7 @@ import {
   Shield, Code2, Search, TestTube, PenTool,
 } from "lucide-react";
 
-/** Node status — mirrors ARIS palette */
+/** Node status — mirrors pipeline palette */
 export type AgentNodeStatus = "idle" | "queued" | "running" | "done" | "error" | "skipped";
 
 const STATUS_STYLES: Record<AgentNodeStatus, string> = {

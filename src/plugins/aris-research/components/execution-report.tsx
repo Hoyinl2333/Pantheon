@@ -15,7 +15,7 @@ import {
   FileText,
 } from "lucide-react";
 import type { Pipeline, PipelineNode, PipelineEdge, NodeStatus } from "../types";
-import { ARIS_SKILLS } from "../skill-data";
+import { RESEARCH_SKILLS } from "../skill-data";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -158,7 +158,7 @@ function topologicalSort(nodes: PipelineNode[], edges: PipelineEdge[]): Pipeline
 }
 
 function getNodeReportData(node: PipelineNode, isZh: boolean, logs: string[]): NodeReportData {
-  const skill = ARIS_SKILLS.find((s) => s.id === node.skillId);
+  const skill = RESEARCH_SKILLS.find((s) => s.id === node.skillId);
   const skillName = skill?.name ?? node.skillId;
   const skillNameZh = skill?.nameZh ?? node.skillId;
   const category = skill?.category ?? "utility";

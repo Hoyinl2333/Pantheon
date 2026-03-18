@@ -21,7 +21,7 @@ import {
   RefreshCw,
   ArrowRight,
 } from "lucide-react";
-import { ARIS_SKILLS } from "../skill-data";
+import { RESEARCH_SKILLS } from "../skill-data";
 
 interface ArisSession {
   id: string;
@@ -205,13 +205,13 @@ function NextStepsSuggestion({
   // Find skills that depend on the completed skill
   const nextSkills = useMemo(() => {
     // Find the completed skill's ID by name
-    const completed = ARIS_SKILLS.find(
+    const completed = RESEARCH_SKILLS.find(
       (s) => s.name === completedSkill || s.nameZh === completedSkill
     );
     if (!completed) return [];
 
     // Find skills that list this as a dependency
-    const dependents = ARIS_SKILLS.filter(
+    const dependents = RESEARCH_SKILLS.filter(
       (s) => s.dependencies?.includes(completed.id)
     );
 
@@ -232,12 +232,12 @@ function NextStepsSuggestion({
 
     const flowIds = flowMap[completed.id] ?? [];
     const flowSkills = flowIds
-      .map((id) => ARIS_SKILLS.find((s) => s.id === id))
-      .filter(Boolean) as typeof ARIS_SKILLS;
+      .map((id) => RESEARCH_SKILLS.find((s) => s.id === id))
+      .filter(Boolean) as typeof RESEARCH_SKILLS;
 
     // Merge & deduplicate
     const seen = new Set<string>();
-    const result: typeof ARIS_SKILLS = [];
+    const result: typeof RESEARCH_SKILLS = [];
     for (const s of [...flowSkills, ...dependents]) {
       if (!seen.has(s.id)) {
         seen.add(s.id);

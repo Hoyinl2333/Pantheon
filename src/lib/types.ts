@@ -1,5 +1,5 @@
 /**
- * Shared types for Super Claude Code Dashboard
+ * Shared types for Pantheon Dashboard
  */
 
 // Navigation

@@ -1,5 +1,5 @@
 /**
- * ARIS Workspace Manager
+ * SAGE Workspace Manager
  *
  * Creates and manages project directories for pipeline runs.
  * Each run gets a folder under E:\claude-projects\ (or user's configured base).
@@ -15,7 +15,7 @@ import path from "path";
 // ---------------------------------------------------------------------------
 
 const PROJECTS_BASE = process.env.ARIS_PROJECTS_BASE || "E:\\claude-projects";
-const INDEX_FILE = path.join(PROJECTS_BASE, ".aris-workspaces.json");
+const INDEX_FILE = path.join(PROJECTS_BASE, ".rs-workspaces.json");
 
 /** Standard directory structure created for each workspace */
 const WORKSPACE_DIRS = [
@@ -97,7 +97,7 @@ function writeIndex(workspaces: ArisWorkspace[]): void {
  * - Strip non-alphanumeric chars (keep spaces, hyphens, underscores)
  * - Collapse whitespace, trim, lowercase
  * - Convert spaces/underscores to hyphens
- * - Limit to 50 chars, prefix "aris-"
+ * - Limit to 50 chars, prefix "rs-"
  */
 function topicToName(topic: string): string {
   const cleaned = topic
@@ -109,7 +109,7 @@ function topicToName(topic: string): string {
     .replace(/^-|-$/g, "");
 
   const truncated = cleaned.slice(0, 50).replace(/-$/, "");
-  return `aris-${truncated || "project"}`;
+  return `rs-${truncated || "project"}`;
 }
 
 /**
@@ -157,7 +157,7 @@ function collectMarkdownFiles(baseDir: string, subDir: string = ""): string[] {
 /**
  * Create a new workspace for a pipeline run.
  *
- * - Auto-generates name from topic (sanitized kebab-case, prefixed "aris-")
+ * - Auto-generates name from topic (sanitized kebab-case, prefixed "rs-")
  * - Deduplicates names by appending -2, -3, etc.
  * - Creates the standard directory structure
  * - Writes CLAUDE.md and ACTIVE_CONTEXT.md
@@ -171,7 +171,7 @@ export async function createWorkspace(opts: {
   const workspaces = readIndex();
   const existingNames = new Set(workspaces.map((w) => w.name));
 
-  const baseName = opts.name ? `aris-${opts.name}` : topicToName(opts.topic);
+  const baseName = opts.name ? `rs-${opts.name}` : topicToName(opts.topic);
   const name = uniqueName(baseName, existingNames);
   const workspacePath = path.join(PROJECTS_BASE, name);
   const now = new Date().toISOString();
@@ -183,7 +183,7 @@ export async function createWorkspace(opts: {
   }
 
   const workspace: ArisWorkspace = {
-    id: `aris-${Date.now()}`,
+    id: `rs-${Date.now()}`,
     name,
     path: workspacePath,
     pipelineId: opts.pipelineId,
@@ -309,7 +309,7 @@ export function generateClaudeMd(
     )
     .join("\n");
 
-  return `# ARIS Research Workspace
+  return `# SAGE Workspace
 
 ## Research Topic
 ${topic}

@@ -2,7 +2,7 @@
  * Build ordered pipeline commands via topological sort
  */
 import type { Pipeline, PipelineNode, PipelineEdge, ArisSkill, ArisParam, SkillCategory } from "../types";
-import { ARIS_SKILLS } from "../skill-data";
+import { RESEARCH_SKILLS } from "../skill-data";
 
 /** Result of building a command with workspace context */
 export interface BuildCommandResult {
@@ -151,12 +151,12 @@ export function buildPipelineCommands(
   // Map nodeId -> skill for upstream resolution
   const nodeSkillMap = new Map<string, ArisSkill>();
   for (const node of pipeline.nodes) {
-    const skill = ARIS_SKILLS.find((s) => s.id === node.skillId);
+    const skill = RESEARCH_SKILLS.find((s) => s.id === node.skillId);
     if (skill) nodeSkillMap.set(node.id, skill);
   }
 
   return sorted.map((node) => {
-    const skill = ARIS_SKILLS.find((s) => s.id === node.skillId);
+    const skill = RESEARCH_SKILLS.find((s) => s.id === node.skillId);
     if (!skill) {
       return {
         nodeId: node.id,

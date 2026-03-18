@@ -20,8 +20,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Super Claude Code",
-  description: "Claude Code Management Dashboard",
+  title: "Pantheon",
+  description: "AI Agent Orchestration Platform",
 };
 
 export default function RootLayout({
@@ -36,7 +36,7 @@ export default function RootLayout({
         <meta name="theme-color" content="#7c3aed" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="Super Claude Code" />
+        <meta name="apple-mobile-web-app-title" content="Pantheon" />
         <link rel="apple-touch-icon" href="/icons/icon-192.svg" />
         <script
           dangerouslySetInnerHTML={{

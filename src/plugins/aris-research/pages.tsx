@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { FlaskConical, Workflow, Loader2 } from "lucide-react";
 import { useTranslations, useLocale } from "next-intl";
 import type { ArisSkill, ResearchState } from "./types";
-import { ARIS_SKILLS } from "./skill-data";
+import { RESEARCH_SKILLS } from "./skill-data";
 import { getResearchState, getResearchStateSync } from "./aris-store";
 import { ConfigPanel } from "./components/config-panel";
 import { SkillLaunchDialog } from "./components/skill-launch-dialog";
@@ -55,7 +55,7 @@ export function ArisResearchPage() {
   const statusColor = STATUS_COLORS[state.status] ?? STATUS_COLORS.idle;
 
   const handleLaunchById = useCallback((skillId: string, context?: string) => {
-    const skill = ARIS_SKILLS.find((s) => s.id === skillId);
+    const skill = RESEARCH_SKILLS.find((s) => s.id === skillId);
     if (skill) {
       setLaunchSkill(skill);
       setLaunchContext(context ?? "");
@@ -88,7 +88,7 @@ export function ArisResearchPage() {
           <div className="flex items-center gap-2">
             <Badge className={`${statusColor} border-0`}>{statusLabel}</Badge>
             <Badge variant="outline" className="text-xs">
-              {ARIS_SKILLS.length} {t("skillCount")}
+              {RESEARCH_SKILLS.length} {t("skillCount")}
             </Badge>
             <WorkspacesButton isZh={isZh} locale={locale} />
             <SessionsButton isZh={isZh} />

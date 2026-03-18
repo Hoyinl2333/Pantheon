@@ -27,7 +27,7 @@ function findGitBash(env: Record<string, string | undefined>): string | undefine
 }
 
 function buildPrompt(description: string, existingSkills: string[]): string {
-  return `You are a Skill Tree planner for an AI coding assistant platform called Super Claude Code (SCC).
+  return `You are a Skill Tree planner for an AI coding assistant platform called Pantheon (PTN).
 
 The user wants to add a new capability described as: "${description}"
 

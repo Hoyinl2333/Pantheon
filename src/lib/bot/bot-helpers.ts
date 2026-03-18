@@ -1,6 +1,6 @@
 /**
  * Shared helper functions for bot implementations.
- * Fetches data from the SCC Dashboard API.
+ * Fetches data from the Pantheon Dashboard API.
  */
 
 import type { SessionSummary, BotStatusInfo } from "./bot-interface";

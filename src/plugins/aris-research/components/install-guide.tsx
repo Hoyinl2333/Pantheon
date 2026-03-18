@@ -93,7 +93,7 @@ export function InstallGuide() {
               ) : allInstalled ? (
                 <><CheckCircle className="h-3.5 w-3.5" /> All Installed</>
               ) : (
-                <><Download className="h-3.5 w-3.5" /> Install ARIS Skills</>
+                <><Download className="h-3.5 w-3.5" /> Install Research Skills</>
               )}
             </Button>
             <span className="text-xs text-muted-foreground">

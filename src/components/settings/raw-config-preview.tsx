@@ -1,6 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useTranslations } from "next-intl";
 import type { ClaudeSettings, CodexSettings } from "@/lib/settings-reader";
 
 interface RawConfigPreviewProps {
@@ -10,16 +11,18 @@ interface RawConfigPreviewProps {
 }
 
 export function RawConfigPreview({ global, local, codex }: RawConfigPreviewProps) {
+  const t = useTranslations("settings.rawConfig");
+
   return (
     <details className="group">
       <summary className="cursor-pointer text-sm text-muted-foreground hover:text-foreground">
-        View Raw Configuration
+        {t("viewRaw")}
       </summary>
       <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardHeader>
             <CardTitle className="text-sm">
-              Global (~/.claude/settings.json)
+              {t("global")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -31,7 +34,7 @@ export function RawConfigPreview({ global, local, codex }: RawConfigPreviewProps
         <Card>
           <CardHeader>
             <CardTitle className="text-sm">
-              Local (~/.claude/settings.local.json)
+              {t("local")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -44,7 +47,7 @@ export function RawConfigPreview({ global, local, codex }: RawConfigPreviewProps
           <Card>
             <CardHeader>
               <CardTitle className="text-sm">
-                Codex (~/.codex/config.toml)
+                {t("codex")}
               </CardTitle>
             </CardHeader>
             <CardContent>

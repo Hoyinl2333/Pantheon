@@ -20,6 +20,11 @@ import {
   Puzzle,
   ListOrdered,
   Globe,
+  Eye,
+  EyeOff,
+  SlidersHorizontal,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationBell } from "@/components/notification-bell";
@@ -30,6 +35,9 @@ import { usePluginSidebarItems } from "@/hooks/use-plugins";
 import { useTranslations } from "next-intl";
 import { useLocale } from "@/i18n/provider";
 import type { LucideIcon } from "lucide-react";
+
+const HIDDEN_NAV_KEY = "ptn-hidden-nav-items";
+const ORDER_KEY = "ptn-nav-order";
 
 const navItems = [
   { href: "/", labelKey: "overview", icon: LayoutDashboard },
@@ -43,11 +51,40 @@ const navItems = [
   { href: "/settings", labelKey: "settings", icon: Settings },
 ];
 
+function loadHiddenItems(): string[] {
+  try {
+    const saved = localStorage.getItem(HIDDEN_NAV_KEY);
+    return saved ? JSON.parse(saved) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveHiddenItems(items: string[]) {
+  localStorage.setItem(HIDDEN_NAV_KEY, JSON.stringify(items));
+}
+
+function loadOrder(): string[] {
+  try {
+    const saved = localStorage.getItem(ORDER_KEY);
+    return saved ? JSON.parse(saved) : [];
+  } catch { return []; }
+}
+
+function saveOrder(order: string[]) {
+  localStorage.setItem(ORDER_KEY, JSON.stringify(order));
+}
+
 export function SidebarNav() {
   const pathname = usePathname();
   const t = useTranslations("nav");
   const [isOpen, setIsOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [manageSidebar, setManageSidebar] = useState(false);
+  const [hiddenItems, setHiddenItems] = useState<string[]>([]);
+  const [customOrder, setCustomOrder] = useState<string[]>([]);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
   const touchStartXRef = useRef<number | null>(null);
   const sidebarRef = useRef<HTMLElement>(null);
   const pluginSidebarGroups = usePluginSidebarItems();
@@ -63,11 +100,27 @@ export function SidebarNav() {
     if (saved === "true") setCollapsed(true);
   }, []);
 
+  // Load hidden items and custom order from localStorage
+  useEffect(() => {
+    setHiddenItems(loadHiddenItems());
+    setCustomOrder(loadOrder());
+  }, []);
+
   const toggleCollapsed = () => {
     const next = !collapsed;
     setCollapsed(next);
     localStorage.setItem("sidebar-collapsed", String(next));
   };
+
+  const toggleItemVisibility = useCallback((id: string) => {
+    setHiddenItems((prev) => {
+      const next = prev.includes(id)
+        ? prev.filter((x) => x !== id)
+        : [...prev, id];
+      saveHiddenItems(next);
+      return next;
+    });
+  }, []);
 
   // Enable keyboard shortcuts
   useKeyboardShortcuts();
@@ -154,6 +207,133 @@ export function SidebarNav() {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
+  // Plugin label i18n map
+  const PLUGIN_LABEL_MAP: Record<string, { en: string; zh: string }> = {
+    "api-management": { en: "API Keys", zh: "API 密钥" },
+    "agent-teams": { en: "Agent Teams", zh: "Agent 团队" },
+    "aris-research": { en: "SAGE", zh: "SAGE 研究" },
+    "skill-tree": { en: "Skill Tree", zh: "技能树" },
+    "daily-briefing": { en: "Daily Briefing", zh: "每日情报" },
+  };
+
+  // Build unified flat list of ALL sidebar items, sorted by custom order
+  const allItems = useMemo(() => {
+    const items: { id: string; href: string; label: string; Icon: LucideIcon; isPlugin: boolean }[] = [];
+    for (const item of navItems) {
+      items.push({ id: item.href, href: item.href, label: t(item.labelKey), Icon: item.icon, isPlugin: false });
+    }
+    for (const group of pluginSidebarGroups) {
+      for (const sidebarItem of group.items) {
+        const href = sidebarItem.path.startsWith("/")
+          ? sidebarItem.path
+          : `/plugins/${group.pluginId}${sidebarItem.path ? `/${sidebarItem.path}` : ""}`;
+        const Icon: LucideIcon = (sidebarItem.icon && typeof sidebarItem.icon !== "string" ? sidebarItem.icon : Puzzle) as LucideIcon;
+        const labels = PLUGIN_LABEL_MAP[group.pluginId];
+        const label = labels ? (locale === "zh-CN" ? labels.zh : labels.en) : sidebarItem.label;
+        items.push({ id: `plugin:${group.pluginId}:${sidebarItem.path}`, href, label, Icon, isPlugin: true });
+      }
+    }
+    // Apply custom order
+    if (customOrder.length > 0) {
+      const orderMap = new Map(customOrder.map((id, idx) => [id, idx]));
+      items.sort((a, b) => {
+        const oa = orderMap.get(a.id) ?? 999;
+        const ob = orderMap.get(b.id) ?? 999;
+        return oa - ob;
+      });
+    }
+    return items;
+  }, [pluginSidebarGroups, t, customOrder, locale]);
+
+  const visibleItems = useMemo(() => allItems.filter((item) => !hiddenItems.includes(item.id)), [allItems, hiddenItems]);
+  const othersItems = useMemo(() => allItems.filter((item) => hiddenItems.includes(item.id)), [allItems, hiddenItems]);
+
+  const [othersExpanded, setOthersExpanded] = useState(false);
+
+  // Drag-and-drop reorder handler
+  const handleDragDrop = useCallback((fromId: string, toId: string) => {
+    if (fromId === toId) return;
+    setCustomOrder((prev) => {
+      const allIds = allItems.map((i) => i.id);
+      const ordered = prev.length > 0
+        ? [...prev.filter((x) => allIds.includes(x)), ...allIds.filter((x) => !prev.includes(x))]
+        : [...allIds];
+      const fromIdx = ordered.indexOf(fromId);
+      const toIdx = ordered.indexOf(toId);
+      if (fromIdx < 0 || toIdx < 0) return prev;
+      const next = [...ordered];
+      const [removed] = next.splice(fromIdx, 1);
+      next.splice(toIdx, 0, removed);
+      saveOrder(next);
+      return next;
+    });
+    setDragId(null);
+    setDragOverId(null);
+  }, [allItems]);
+
+  const renderNavLink = (item: (typeof allItems)[0]) => {
+    const isActive = item.isPlugin
+      ? pathname === item.href || pathname.startsWith(`${item.href}/`)
+      : pathname === item.href;
+
+    return (
+      <Link
+        key={item.id}
+        href={item.href}
+        onClick={() => setIsOpen(false)}
+        title={collapsed ? item.label : undefined}
+        className={`
+          flex items-center ${collapsed ? "lg:justify-center" : "gap-3"} gap-3
+          ${collapsed ? "lg:px-0 lg:py-2 px-3 py-3" : "px-3 py-3"}
+          rounded-md text-sm transition-colors
+          min-h-[44px]
+          touch-manipulation
+          ${isActive ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted active:bg-muted/80"}
+        `}
+      >
+        <item.Icon className="h-5 w-5 flex-shrink-0 lg:h-4 lg:w-4" />
+        <span className={collapsed ? "lg:hidden" : ""}>{item.label}</span>
+      </Link>
+    );
+  };
+
+  const renderManageItem = (item: (typeof allItems)[0]) => {
+    const isHidden = hiddenItems.includes(item.id);
+    const isDragging = dragId === item.id;
+    const isDragOver = dragOverId === item.id && dragId !== item.id;
+    return (
+      <div
+        key={item.id}
+        draggable
+        onDragStart={() => setDragId(item.id)}
+        onDragEnd={() => { setDragId(null); setDragOverId(null); }}
+        onDragOver={(e) => { e.preventDefault(); setDragOverId(item.id); }}
+        onDragLeave={() => setDragOverId(null)}
+        onDrop={(e) => { e.preventDefault(); if (dragId) handleDragDrop(dragId, item.id); }}
+        className={`
+          flex items-center gap-1.5 px-2 py-1.5 rounded-md text-sm cursor-grab active:cursor-grabbing
+          transition-all duration-150
+          ${isHidden ? "opacity-40" : ""}
+          ${isDragging ? "opacity-30 scale-95" : ""}
+          ${isDragOver ? "border-t-2 border-primary" : "border-t-2 border-transparent"}
+        `}
+      >
+        {/* Drag handle */}
+        <span className="text-muted-foreground/50 text-[10px] shrink-0 select-none">⠿</span>
+        {/* Visibility toggle */}
+        <button
+          onClick={(e) => { e.stopPropagation(); toggleItemVisibility(item.id); }}
+          className="flex-shrink-0 p-0.5 rounded hover:bg-muted transition-colors"
+          title={isHidden ? "Show" : "Hide"}
+        >
+          {isHidden ? <EyeOff className="h-3 w-3 text-muted-foreground" /> : <Eye className="h-3 w-3 text-foreground" />}
+        </button>
+        <item.Icon className="h-3.5 w-3.5 flex-shrink-0" />
+        <span className="truncate flex-1 text-xs">{item.label}</span>
+      </div>
+    );
+  };
+
   return (
     <>
       {/* Keyboard Shortcuts Help Modal */}
@@ -210,92 +390,77 @@ export function SidebarNav() {
               {/* On mobile when sidebar is open, show full header even if collapsed on desktop */}
               <div className="lg:hidden flex items-center gap-2 min-w-0">
                 <span className="text-xl">⚡</span>
-                <span className="truncate">Super Claude Code</span>
+                <span className="truncate">Pantheon</span>
               </div>
-              <span className="text-xl hidden lg:block" title="Super Claude Code">⚡</span>
+              <span className="text-xl hidden lg:block" title="Pantheon">⚡</span>
             </>
           ) : (
             <>
               <div className="flex items-center gap-2 min-w-0">
                 <span className="text-xl">⚡</span>
-                <span className="truncate">Super Claude Code</span>
+                <span className="truncate">Pantheon</span>
               </div>
               <NotificationBell />
             </>
           )}
         </div>
 
+        {/* Top manage bar — thin strip above nav */}
+        <div className={`flex items-center ${collapsed ? "lg:justify-center" : "justify-between"} px-2 pb-2 ${collapsed && !manageSidebar ? "lg:px-0" : ""}`}>
+          {!collapsed && (
+            <span className="text-[10px] text-muted-foreground">
+              {manageSidebar
+                ? (locale === "en" ? "Editing" : "编辑中")
+                : `${visibleItems.length} / ${allItems.length}`}
+            </span>
+          )}
+          <button
+            onClick={() => setManageSidebar((v) => !v)}
+            className={`p-1 rounded transition-colors ${
+              manageSidebar
+                ? "text-primary bg-primary/10"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+            }`}
+            title={manageSidebar
+              ? (locale === "en" ? "Done" : "完成")
+              : (locale === "en" ? "Manage sidebar" : "管理侧边栏")}
+          >
+            <SlidersHorizontal className="h-3 w-3" />
+          </button>
+        </div>
+
         {/* Navigation */}
         <nav aria-label="Dashboard navigation" className="space-y-1 flex-1 overflow-y-auto min-h-0">
-          {navItems.map((item) => {
-            const isActive = pathname === item.href;
-            const label = t(item.labelKey);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setIsOpen(false)}
-                title={collapsed ? label : undefined}
-                className={`
-                  flex items-center ${collapsed ? "lg:justify-center" : "gap-3"} gap-3
-                  ${collapsed ? "lg:px-0 lg:py-2 px-3 py-3" : "px-3 py-3"}
-                  rounded-md text-sm transition-colors
-                  min-h-[44px]
-                  touch-manipulation
-                  ${
-                    isActive
-                      ? "bg-primary text-primary-foreground font-medium"
-                      : "hover:bg-muted active:bg-muted/80"
-                  }
-                `}
-              >
-                <item.icon className="h-5 w-5 flex-shrink-0 lg:h-4 lg:w-4" />
-                <span className={collapsed ? "lg:hidden" : ""}>{label}</span>
-              </Link>
-            );
-          })}
-
-          {/* Plugin sidebar items */}
-          {pluginSidebarGroups.length > 0 && (
+          {manageSidebar ? (
+            /* ── Management mode: all items with Eye toggles ── */
+            allItems.map((item) => renderManageItem(item))
+          ) : (
+            /* ── Normal mode: visible items + Others ── */
             <>
-              <div className={`pt-3 pb-1 ${collapsed ? "lg:hidden" : ""}`}>
-                <div className="flex items-center gap-1.5 px-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  <Puzzle className="h-3 w-3" />
-                  <span>Plugins</span>
-                </div>
-              </div>
-              {pluginSidebarGroups.map((group) =>
-                group.items.map((sidebarItem) => {
-                  const href = sidebarItem.path.startsWith("/")
-                    ? sidebarItem.path
-                    : `/plugins/${group.pluginId}${sidebarItem.path ? `/${sidebarItem.path}` : ""}`;
-                  const isActive = pathname === href || pathname.startsWith(`${href}/`);
-                  const Icon: LucideIcon = (typeof sidebarItem.icon === "function" ? sidebarItem.icon : Puzzle) as LucideIcon;
+              {visibleItems.map(renderNavLink)}
 
-                  return (
-                    <Link
-                      key={`${group.pluginId}-${sidebarItem.path}`}
-                      href={href}
-                      onClick={() => setIsOpen(false)}
-                      title={collapsed ? sidebarItem.label : undefined}
-                      className={`
-                        flex items-center ${collapsed ? "lg:justify-center" : "gap-3"} gap-3
-                        ${collapsed ? "lg:px-0 lg:py-2 px-3 py-3" : "px-3 py-3"}
-                        rounded-md text-sm transition-colors
-                        min-h-[44px]
-                        touch-manipulation
-                        ${
-                          isActive
-                            ? "bg-primary text-primary-foreground font-medium"
-                            : "hover:bg-muted active:bg-muted/80"
-                        }
-                      `}
-                    >
-                      <Icon className="h-5 w-5 flex-shrink-0 lg:h-4 lg:w-4" />
-                      <span className={collapsed ? "lg:hidden" : ""}>{sidebarItem.label}</span>
-                    </Link>
-                  );
-                })
+              {/* Others — hidden items in a collapsible section */}
+              {othersItems.length > 0 && (
+                <>
+                  <button
+                    onClick={() => setOthersExpanded((v) => !v)}
+                    className={`
+                      flex items-center ${collapsed ? "lg:justify-center" : "gap-2"} gap-2
+                      w-full px-3 py-2 mt-1
+                      text-[11px] text-muted-foreground hover:text-foreground
+                      transition-colors rounded-md hover:bg-muted/50
+                    `}
+                    title={collapsed ? (locale === "en" ? "Others" : "更多") : undefined}
+                  >
+                    {othersExpanded
+                      ? <ChevronDown className="h-3 w-3 shrink-0" />
+                      : <ChevronRight className="h-3 w-3 shrink-0" />}
+                    <span className={`font-medium ${collapsed ? "lg:hidden" : ""}`}>
+                      {locale === "en" ? "Others" : "更多"} ({othersItems.length})
+                    </span>
+                  </button>
+                  {othersExpanded && othersItems.map(renderNavLink)}
+                </>
               )}
             </>
           )}
@@ -328,7 +493,7 @@ export function SidebarNav() {
           ) : (
             <>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">v3.1.0</span>
+                <span className="text-xs text-muted-foreground">v4.5.0</span>
                 <Button
                   variant="ghost"
                   size="sm"

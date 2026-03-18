@@ -13,7 +13,7 @@
  * - FEISHU_APP_ID: App ID from Feishu Open Platform (required)
  * - FEISHU_APP_SECRET: App Secret (required)
  * - FEISHU_VERIFICATION_TOKEN: Event verification token (optional)
- * - SCC_BASE_URL: Dashboard base URL (default: http://localhost:3000)
+ * - PTN_BASE_URL: Dashboard base URL (default: http://localhost:3000)
  * - FEISHU_ALLOWED_CHATS: Comma-separated chat IDs to allow (empty = allow all)
  */
 

@@ -8,7 +8,7 @@
  * - FEISHU_APP_SECRET: App Secret (required)
  * - FEISHU_VERIFICATION_TOKEN: Event verification token (optional)
  * - FEISHU_ENCRYPT_KEY: Event encryption key (optional)
- * - SCC_BASE_URL: Dashboard base URL (default: http://localhost:3000)
+ * - PTN_BASE_URL: Dashboard base URL (default: http://localhost:3000)
  * - FEISHU_ALLOWED_CHATS: Comma-separated chat IDs to allow (empty = allow all)
  */
 
@@ -299,7 +299,7 @@ export function getFeishuBot(): FeishuBot | null {
   if (!appId || !appSecret) return null;
 
   if (!botInstance) {
-    const baseUrl = process.env.SCC_BASE_URL || "http://localhost:3000";
+    const baseUrl = process.env.PTN_BASE_URL || "http://localhost:3000";
     const verificationToken = process.env.FEISHU_VERIFICATION_TOKEN || undefined;
     const encryptKey = process.env.FEISHU_ENCRYPT_KEY || undefined;
     const allowedChatIds = process.env.FEISHU_ALLOWED_CHATS

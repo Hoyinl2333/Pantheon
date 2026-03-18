@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { X, AlertCircle, Shield } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
-import { ARIS_SKILLS } from "../skill-data";
+import { RESEARCH_SKILLS } from "../skill-data";
 import { buildCommand, getValidationErrors } from "../lib/build-pipeline-commands";
 import { ParamInput } from "./param-input";
 import type { PipelineNode } from "../types";
@@ -17,7 +17,7 @@ interface NodeConfigPanelProps {
 }
 
 export function NodeConfigPanel({ node, onUpdate, onClose, isZh }: NodeConfigPanelProps) {
-  const skill = ARIS_SKILLS.find((s) => s.id === node.skillId);
+  const skill = RESEARCH_SKILLS.find((s) => s.id === node.skillId);
   if (!skill) return null;
 
   const params = skill.params ?? [];

@@ -32,7 +32,7 @@ import {
 import type { Pipeline, PipelineWithState, ResearchProgram, ProgramAttachment, SkillCategory } from "../types";
 import { PIPELINE_TEMPLATES } from "../pipeline-templates";
 import { getPipelines, deletePipeline } from "../pipeline-store";
-import { ARIS_SKILLS } from "../skill-data";
+import { RESEARCH_SKILLS } from "../skill-data";
 
 // ---------------------------------------------------------------------------
 // Props
@@ -170,7 +170,7 @@ function MiniDag({ nodes, edges }: MiniDagProps) {
   // Resolve category color per node
   const nodeColorMap = new Map<string, string>();
   for (const n of nodes) {
-    const skill = ARIS_SKILLS.find((s) => s.id === n.skillId);
+    const skill = RESEARCH_SKILLS.find((s) => s.id === n.skillId);
     const cat = skill?.category ?? "utility";
     nodeColorMap.set(n.id, CATEGORY_DOT_COLORS[cat]);
   }

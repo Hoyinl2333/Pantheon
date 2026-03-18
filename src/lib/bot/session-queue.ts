@@ -41,7 +41,7 @@ export type NotifyCallback = (chatId: string, platform: string, reply: BotReply)
 
 // ---- Database ----
 
-const DB_PATH = path.join(os.homedir(), ".claude", "scc-dashboard.db");
+const DB_PATH = path.join(os.homedir(), ".claude", "ptn-dashboard.db");
 
 let _db: Database.Database | null = null;
 

@@ -2,8 +2,8 @@
 
 import { useState, useCallback, useEffect } from "react";
 
-const STORAGE_KEY = "scc-notifications";
-const ALERTS_KEY = "scc-alerts";
+const STORAGE_KEY = "ptn-notifications";
+const ALERTS_KEY = "ptn-alerts";
 const MAX_NOTIFICATIONS = 50;
 
 export interface Notification {

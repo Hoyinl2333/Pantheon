@@ -181,7 +181,7 @@ Read these files for context and build upon them.`
 
     // Use a PS here-string to avoid all quoting issues
     promptBlock = `$prompt = @'
-You are running as part of an ARIS research pipeline.
+You are running as part of a SAGE pipeline.
 
 ## Current Task
 ${command}
@@ -239,8 +239,6 @@ try {
 } catch {
   "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] ERROR: $_" | Out-File -FilePath $logFile -Append -Encoding utf8
 }
-
-Start-Sleep -Seconds 2
 `;
 
   fs.writeFileSync(psScript, psContent, "utf-8");
@@ -250,17 +248,17 @@ Start-Sleep -Seconds 2
     fs.mkdirSync(workspacePath, { recursive: true });
   }
 
-  // Launch in a new visible PowerShell window (survives browser close)
-  // NOTE: cmd.exe "start" requires the window title in double quotes,
-  // otherwise it tries to execute the title as a command.
-  // Sanitize skill name to ASCII to avoid Windows encoding issues.
-  const safeTitle = skill.replace(/[^a-zA-Z0-9 _\-]/g, "").slice(0, 40) || "skill";
-  const child = spawn("cmd.exe", [
-    "/c", `start "ARIS: ${safeTitle}" powershell.exe -NoProfile -ExecutionPolicy Bypass -File "${psScript}"`,
+  // Launch PowerShell HIDDEN (no popup window).
+  // Logs are streamed to the log file and polled by the dashboard.
+  const child = spawn("powershell.exe", [
+    "-NoProfile",
+    "-ExecutionPolicy", "Bypass",
+    "-WindowStyle", "Hidden",
+    "-File", psScript,
   ], {
     detached: true,
     stdio: "ignore",
-    windowsVerbatimArguments: true,
+    windowsHide: true,
   });
 
   child.unref();

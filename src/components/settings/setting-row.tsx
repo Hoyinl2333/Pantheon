@@ -2,6 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, XCircle } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 export function SettingRow({
   label,
@@ -12,6 +13,8 @@ export function SettingRow({
   value: string | boolean | number | undefined;
   type?: "string" | "boolean" | "number";
 }) {
+  const t = useTranslations("common");
+
   return (
     <div className="flex items-center gap-3">
       <div className="text-sm text-muted-foreground min-w-[180px]">{label}</div>
@@ -21,12 +24,12 @@ export function SettingRow({
             {value ? (
               <>
                 <CheckCircle className="h-3 w-3 mr-1" />
-                Enabled
+                {t("enabled")}
               </>
             ) : (
               <>
                 <XCircle className="h-3 w-3 mr-1" />
-                Disabled
+                {t("disabled")}
               </>
             )}
           </Badge>
@@ -47,13 +50,15 @@ export function HookDisplay({
   label: string;
   hook?: { command: string; description?: string };
 }) {
+  const t = useTranslations("settings.hooks");
+
   if (!hook) {
     return (
       <div className="space-y-1">
         <div className="text-sm text-muted-foreground">{label}</div>
         <Badge variant="secondary">
           <XCircle className="h-3 w-3 mr-1" />
-          Not Configured
+          {t("notConfigured")}
         </Badge>
       </div>
     );
@@ -65,7 +70,7 @@ export function HookDisplay({
       <div className="space-y-1">
         <Badge variant="default">
           <CheckCircle className="h-3 w-3 mr-1" />
-          Configured
+          {t("configured")}
         </Badge>
         <code className="block text-xs bg-muted p-2 rounded mt-1">
           {hook.command}

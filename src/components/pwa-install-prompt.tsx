@@ -61,7 +61,7 @@ export function PwaInstallPrompt() {
       <div className="flex items-center gap-3 rounded-lg border bg-background px-4 py-3 shadow-lg">
         <Download className="h-5 w-5 text-primary shrink-0" />
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium">Install Super Claude Code</p>
+          <p className="text-sm font-medium">Install Pantheon</p>
           <p className="text-xs text-muted-foreground">
             Add to your desktop for quick access
           </p>

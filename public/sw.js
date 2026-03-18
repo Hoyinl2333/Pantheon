@@ -1,8 +1,8 @@
-// Super Claude Code - Service Worker
+// Pantheon - Service Worker
 // Cache-first for static assets, network-first for API calls
 
-const CACHE_NAME = "scc-cache-v1";
-const STATIC_CACHE = "scc-static-v1";
+const CACHE_NAME = "ptn-cache-v1";
+const STATIC_CACHE = "ptn-static-v1";
 
 // Static assets to pre-cache on install
 const PRECACHE_URLS = [

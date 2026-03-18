@@ -1,7 +1,7 @@
 "use client";
 import { useState, useCallback, useEffect } from "react";
 
-const STORAGE_KEY = "scc-favorites";
+const STORAGE_KEY = "ptn-favorites";
 
 export function useFavorites() {
   const [favorites, setFavorites] = useState<string[]>([]);

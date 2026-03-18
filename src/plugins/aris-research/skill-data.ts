@@ -1,8 +1,7 @@
 /**
- * ARIS Research Plugin - Skill Data
+ * SAGE Plugin - Skill Data
  *
- * All 27 ARIS skills organized by category.
- * Reference: https://github.com/wanshuiyin/Auto-claude-code-research-in-sleep
+ * All research skills organized by category.
  */
 
 import type { ArisSkill, SkillCategory } from "./types";
@@ -102,7 +101,7 @@ const WORKFLOW_SKILLS: ArisSkill[] = [
 
 // ---- Research Skills (Tier 2 - Intermediate) ----
 
-const RESEARCH_SKILLS: ArisSkill[] = [
+const RESEARCH_CATEGORY_SKILLS: ArisSkill[] = [
   {
     id: "research-lit",
     name: "Literature Search",
@@ -371,10 +370,10 @@ const UTILITY_SKILLS: ArisSkill[] = [
   },
 ];
 
-/** All 27 ARIS skills */
-export const ARIS_SKILLS: ArisSkill[] = [
+/** All 27 research skills */
+export const RESEARCH_SKILLS: ArisSkill[] = [
   ...WORKFLOW_SKILLS,
-  ...RESEARCH_SKILLS,
+  ...RESEARCH_CATEGORY_SKILLS,
   ...EXPERIMENT_SKILLS,
   ...PAPER_SKILLS,
   ...UTILITY_SKILLS,
@@ -383,7 +382,7 @@ export const ARIS_SKILLS: ArisSkill[] = [
 /** Skills grouped by category */
 export const SKILLS_BY_CATEGORY: Record<SkillCategory, ArisSkill[]> = {
   workflow: WORKFLOW_SKILLS,
-  research: RESEARCH_SKILLS,
+  research: RESEARCH_CATEGORY_SKILLS,
   experiment: EXPERIMENT_SKILLS,
   paper: PAPER_SKILLS,
   utility: UTILITY_SKILLS,
@@ -392,7 +391,7 @@ export const SKILLS_BY_CATEGORY: Record<SkillCategory, ArisSkill[]> = {
 /** Category metadata */
 export const CATEGORY_META: Record<SkillCategory, { label: string; labelZh: string; count: number }> = {
   workflow: { label: "Workflows", labelZh: "工作流", count: WORKFLOW_SKILLS.length },
-  research: { label: "Research", labelZh: "研究", count: RESEARCH_SKILLS.length },
+  research: { label: "Research", labelZh: "研究", count: RESEARCH_CATEGORY_SKILLS.length },
   experiment: { label: "Experiment", labelZh: "实验", count: EXPERIMENT_SKILLS.length },
   paper: { label: "Paper", labelZh: "论文", count: PAPER_SKILLS.length },
   utility: { label: "Utility", labelZh: "工具", count: UTILITY_SKILLS.length },

@@ -1,5 +1,5 @@
 /**
- * ARIS Config & Research State — file-based persistence via API
+ * SAGE Config & State — file-based persistence via API
  */
 import type { ArisConfig, ResearchState } from "./types";
 

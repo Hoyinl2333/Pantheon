@@ -112,7 +112,7 @@ export async function PUT(req: NextRequest) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           chat_id: chatId,
-          text: "SCC Dashboard test message — connection is working!",
+          text: "Pantheon test message — connection is working!",
         }),
       });
       const data = await res.json();

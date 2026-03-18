@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Terminal, CheckCircle, XCircle } from "lucide-react";
 import { SettingRow } from "./setting-row";
+import { useTranslations } from "next-intl";
 import type { EnvironmentInfo, ClaudeSettings } from "@/lib/settings-reader";
 
 interface ClaudeCliSettingsProps {
@@ -12,6 +13,7 @@ interface ClaudeCliSettingsProps {
 }
 
 export function ClaudeCliSettings({ environment, merged }: ClaudeCliSettingsProps) {
+  const t = useTranslations("settings.claudeCli");
   const mcpServerCount = merged.mcpServers ? Object.keys(merged.mcpServers).length : 0;
 
   return (
@@ -19,10 +21,10 @@ export function ClaudeCliSettings({ environment, merged }: ClaudeCliSettingsProp
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2">
           <Terminal className="h-5 w-5" />
-          Claude Code CLI
+          {t("title")}
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          Anthropic Claude Code CLI configuration and status.
+          {t("description")}
         </p>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -31,19 +33,19 @@ export function ClaudeCliSettings({ environment, merged }: ClaudeCliSettingsProp
             <div className="flex items-center gap-2">
               <Badge variant="default">
                 <CheckCircle className="h-3 w-3 mr-1" />
-                Installed
+                {t("installed")}
               </Badge>
             </div>
             <SettingRow
-              label="Config Path"
+              label={t("configPath")}
               value={`${environment.claudeDir}/settings.json`}
             />
             <SettingRow
-              label="Claude Directory"
+              label={t("claudeDirectory")}
               value={environment.claudeDir}
             />
             <SettingRow
-              label="MCP Servers"
+              label={t("mcpServers")}
               value={String(mcpServerCount)}
             />
           </>
@@ -52,11 +54,11 @@ export function ClaudeCliSettings({ environment, merged }: ClaudeCliSettingsProp
             <div className="flex items-center gap-2">
               <Badge variant="secondary">
                 <XCircle className="h-3 w-3 mr-1" />
-                Not Installed
+                {t("notInstalled")}
               </Badge>
             </div>
             <div className="text-sm text-muted-foreground">
-              Install Claude Code CLI:
+              {t("installHint")}
             </div>
             <code className="block text-xs bg-muted px-3 py-2 rounded-md">
               npm install -g @anthropic-ai/claude-code

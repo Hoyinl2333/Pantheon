@@ -10,7 +10,7 @@ const SKILLS_DIR = path.join(os.homedir(), ".claude", "skills");
 const ARIS_REPO = "https://github.com/wanshuiyin/Auto-claude-code-research-in-sleep.git";
 
 export async function GET() {
-  // Check which ARIS skills are already installed
+  // Check which research skills are already installed
   const arisSkills = [
     "research-pipeline", "idea-discovery", "auto-review-loop", "paper-writing",
     "research-lit", "idea-creator", "novelty-check", "research-review",

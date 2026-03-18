@@ -15,7 +15,7 @@ export type SkillStatus =
 export type SkillCategory =
   | "foundation"   // Core infrastructure
   | "coding"       // Development skills
-  | "research"     // ARIS research pipeline
+  | "research"     // SAGE pipeline
   | "management"   // API, agents, settings
   | "creative"     // Content creation, design
   | "integration"  // External services, bots

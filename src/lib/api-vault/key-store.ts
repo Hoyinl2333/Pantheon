@@ -12,6 +12,7 @@ import Database from "better-sqlite3";
 import path from "path";
 import os from "os";
 import crypto from "crypto";
+import { ensureDataMigration } from "@/lib/migrate-data";
 
 // ---- Types ----
 
@@ -62,7 +63,7 @@ export const PROVIDERS = [
 // ---- Obfuscation ----
 
 function deriveKey(): Buffer {
-  const seed = `scc-vault:${os.hostname()}:${os.homedir()}`;
+  const seed = `ptn-vault:${os.hostname()}:${os.homedir()}`;
   return crypto.createHash("sha256").update(seed).digest();
 }
 
@@ -93,12 +94,13 @@ function maskKey(key: string): string {
 
 // ---- Database ----
 
-const DB_PATH = path.join(os.homedir(), ".claude", "scc-dashboard.db");
+ensureDataMigration();
+const DB_PATH = path.join(os.homedir(), ".claude", "ptn-dashboard.db");
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const _global = globalThis as any;
-const DB_SYMBOL = Symbol.for("scc-api-vault-db");
-const DB_VERSION_KEY = Symbol.for("scc-api-vault-db-version");
+const DB_SYMBOL = Symbol.for("ptn-api-vault-db");
+const DB_VERSION_KEY = Symbol.for("ptn-api-vault-db-version");
 const CURRENT_DB_VERSION = 2;
 
 function getStoredDb(): Database.Database | null { return _global[DB_SYMBOL] ?? null; }

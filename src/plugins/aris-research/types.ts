@@ -1,14 +1,14 @@
 /**
- * ARIS Research Plugin - Type Definitions
+ * SAGE Plugin - Type Definitions
  *
- * Types for the Auto-claude-code-research-in-sleep (ARIS) plugin,
+ * Types for the SAGE plugin,
  * which provides 27 Claude Code skills for autonomous ML research pipelines.
  */
 
 /** Skill category classification */
 export type SkillCategory = "workflow" | "research" | "experiment" | "paper" | "utility";
 
-/** A single ARIS skill definition */
+/** A single research skill definition */
 export interface ArisSkill {
   id: string;
   name: string;
@@ -25,7 +25,7 @@ export interface ArisSkill {
 /** Parameter input type */
 export type ArisParamType = "text" | "number" | "select" | "boolean" | "textarea";
 
-/** Parameter for an ARIS skill */
+/** Parameter for a research skill */
 export interface ArisParam {
   name: string;
   default: string;
@@ -36,7 +36,7 @@ export interface ArisParam {
   placeholder?: string;
 }
 
-/** ARIS plugin configuration */
+/** SAGE configuration */
 export interface ArisConfig {
   reviewerModel: string;
   reviewerProvider: "codex-mcp" | "llm-chat-mcp" | "minimax-mcp";

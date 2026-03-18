@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <!-- Pediment (triangle roof) -->
+  <polygon points="64,12 16,48 112,48" stroke="currentColor" stroke-width="4" fill="none" stroke-linejoin="round"/>
+  <!-- Architrave (top beam) -->
+  <rect x="14" y="48" width="100" height="6" rx="1" fill="currentColor"/>
+  <!-- Columns -->
+  <rect x="22" y="54" width="8" height="52" rx="2" fill="currentColor"/>
+  <rect x="42" y="54" width="8" height="52" rx="2" fill="currentColor"/>
+  <rect x="60" y="54" width="8" height="52" rx="2" fill="currentColor"/>
+  <rect x="78" y="54" width="8" height="52" rx="2" fill="currentColor"/>
+  <rect x="98" y="54" width="8" height="52" rx="2" fill="currentColor"/>
+  <!-- Stylobate (base platform) -->
+  <rect x="10" y="106" width="108" height="6" rx="1" fill="currentColor"/>
+  <rect x="6" y="112" width="116" height="5" rx="1" fill="currentColor"/>
+  <!-- Central emblem: small diamond/node inside pediment -->
+  <circle cx="64" cy="36" r="5" stroke="currentColor" stroke-width="2.5" fill="none"/>
+  <circle cx="64" cy="36" r="1.5" fill="currentColor"/>
+</svg>

@@ -2,13 +2,13 @@
  * Telegram Bot webhook endpoint.
  *
  * Setup:
- * 1. Set env vars: TELEGRAM_BOT_TOKEN, SCC_BASE_URL (optional), TELEGRAM_ALLOWED_CHATS (optional)
+ * 1. Set env vars: TELEGRAM_BOT_TOKEN, PTN_BASE_URL (optional), TELEGRAM_ALLOWED_CHATS (optional)
  * 2. Set webhook URL via Telegram API:
  *    curl "https://api.telegram.org/bot<TOKEN>/setWebhook?url=<YOUR_DOMAIN>/api/bot/telegram"
  *
  * Environment variables:
  * - TELEGRAM_BOT_TOKEN: Bot API token from @BotFather (required)
- * - SCC_BASE_URL: Dashboard base URL (default: http://localhost:3000)
+ * - PTN_BASE_URL: Dashboard base URL (default: http://localhost:3000)
  * - TELEGRAM_ALLOWED_CHATS: Comma-separated chat IDs to allow (empty = allow all)
  */
 

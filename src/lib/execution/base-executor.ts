@@ -1,7 +1,7 @@
 /**
  * Base Execution Engine
  *
- * Generic execution abstraction shared by ARIS pipelines and Agent Teams.
+ * Generic execution abstraction shared by SAGE pipelines and Agent Teams.
  * Provides topological sort, downstream detection, parallel execution,
  * and checkpoint/resume capability.
  */

@@ -64,7 +64,7 @@ type ViewMode = "chart" | "table";
 const PROVIDER_LABELS: Record<ProviderFilter, string> = {
   all: "All Providers",
   claude: "Claude",
-  codex: "Codex (GPT/o3/o4)",
+  codex: "Codex",
   unknown: "Unknown",
 };
 

@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Bell, DollarSign, CheckCircle } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface CostAlertSettingsProps {
   dailyBudget: number;
@@ -16,24 +17,26 @@ export function CostAlertSettings({
   onDailyBudgetChange,
   onWeeklyBudgetChange,
 }: CostAlertSettingsProps) {
+  const t = useTranslations("settings.costAlerts");
+
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2">
           <Bell className="h-5 w-5" />
-          Cost Alerts
+          {t("title")}
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          Set budget limits to receive notifications when costs exceed thresholds. Set to 0 to disable.
+          {t("description")}
         </p>
       </CardHeader>
       <CardContent className="space-y-5">
         {/* Daily Budget */}
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-sm font-medium">Daily Budget</div>
+            <div className="text-sm font-medium">{t("dailyBudget")}</div>
             <div className="text-xs text-muted-foreground">
-              Maximum spend per day before alerting
+              {t("dailyBudgetDesc")}
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -48,7 +51,7 @@ export function CostAlertSettings({
               placeholder="0.00"
             />
             <span className="text-xs text-muted-foreground w-16">
-              {dailyBudget === 0 ? "(disabled)" : "per day"}
+              {dailyBudget === 0 ? t("disabled") : t("perDay")}
             </span>
           </div>
         </div>
@@ -56,9 +59,9 @@ export function CostAlertSettings({
         {/* Weekly Budget */}
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-sm font-medium">Weekly Budget</div>
+            <div className="text-sm font-medium">{t("weeklyBudget")}</div>
             <div className="text-xs text-muted-foreground">
-              Maximum spend per week before alerting
+              {t("weeklyBudgetDesc")}
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -73,7 +76,7 @@ export function CostAlertSettings({
               placeholder="0.00"
             />
             <span className="text-xs text-muted-foreground w-16">
-              {weeklyBudget === 0 ? "(disabled)" : "per week"}
+              {weeklyBudget === 0 ? t("disabled") : t("perWeek")}
             </span>
           </div>
         </div>
@@ -84,10 +87,9 @@ export function CostAlertSettings({
             <div className="flex items-start gap-2">
               <CheckCircle className="h-4 w-4 text-green-600 mt-0.5" />
               <div className="text-sm">
-                <p className="font-medium">Alerts enabled</p>
+                <p className="font-medium">{t("alertsEnabled")}</p>
                 <p className="text-muted-foreground text-xs mt-1">
-                  You&apos;ll receive notifications when costs exceed your budget limits.
-                  Checks run every 60 seconds.
+                  {t("alertsEnabledDesc")}
                 </p>
               </div>
             </div>

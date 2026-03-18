@@ -2,7 +2,7 @@ import Database from "better-sqlite3";
 import path from "path";
 import os from "os";
 
-const DB_PATH = path.join(os.homedir(), ".claude", "scc-dashboard.db");
+const DB_PATH = path.join(os.homedir(), ".claude", "ptn-dashboard.db");
 
 let _db: Database.Database | null = null;
 

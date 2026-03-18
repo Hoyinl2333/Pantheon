@@ -8,10 +8,10 @@
 import type { Portfolio, Trade, TradingStrategy } from "../types";
 
 const STORAGE_KEYS = {
-  portfolios: "scc-stocks-portfolios",
-  trades: "scc-stocks-trades",
-  strategies: "scc-stocks-strategies",
-  watchlist: "scc-stocks-watchlist",
+  portfolios: "ptn-stocks-portfolios",
+  trades: "ptn-stocks-trades",
+  strategies: "ptn-stocks-strategies",
+  watchlist: "ptn-stocks-watchlist",
 } as const;
 
 function readJSON<T>(key: string, fallback: T): T {

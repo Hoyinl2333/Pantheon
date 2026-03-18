@@ -1,13 +1,13 @@
 /**
  * Pipeline Execution Engine
  *
- * Executes ARIS pipeline nodes using the shared BaseExecutor.
+ * Executes research pipeline nodes using the shared BaseExecutor.
  * Each node launches a Claude CLI session via the sessions API.
  * Supports parallel execution and checkpoint/resume.
  */
 import type { Pipeline, PipelineNode, PipelineEdge } from "../types";
-import { ARIS_SKILLS } from "../skill-data";
-import { buildCommand } from "./build-pipeline-commands";
+import { RESEARCH_SKILLS } from "../skill-data";
+import { buildCommand, buildCommandWithContext } from "./build-pipeline-commands";
 import {
   BaseExecutor,
   sleep,
@@ -30,6 +30,8 @@ export interface ExecutorOptions extends BaseExecutorOptions {
   resumeFrom?: string; // last completed node ID
   /** Notification configuration */
   notifier?: NotifierConfig;
+  /** Workspace path for file I/O */
+  workspacePath?: string;
 }
 
 export class PipelineExecutor extends BaseExecutor<PipelineNode, PipelineEdge> {
@@ -38,6 +40,7 @@ export class PipelineExecutor extends BaseExecutor<PipelineNode, PipelineEdge> {
   private currentSessionIds = new Set<string>();
   private startTime = Date.now();
   private readonly sendNotify: ReturnType<typeof createPipelineNotifier> | null;
+  private readonly workspacePath: string | null;
 
   constructor(pipeline: Pipeline, listener: ExecutionListener, options?: ExecutorOptions) {
     super(pipeline.nodes, pipeline.edges, listener, {
@@ -46,6 +49,7 @@ export class PipelineExecutor extends BaseExecutor<PipelineNode, PipelineEdge> {
     });
     this.pipelineId = pipeline.id;
     this.pipelineName = pipeline.name || pipeline.id;
+    this.workspacePath = options?.workspacePath ?? null;
 
     // Setup notifier
     this.sendNotify = options?.notifier?.enabled
@@ -63,26 +67,50 @@ export class PipelineExecutor extends BaseExecutor<PipelineNode, PipelineEdge> {
   }
 
   protected override async waitForCheckpoint(nodeId: string): Promise<boolean> {
-    const skill = ARIS_SKILLS.find((s) => s.id === this.nodes.find((n) => n.id === nodeId)?.skillId);
+    const skill = RESEARCH_SKILLS.find((s) => s.id === this.nodes.find((n) => n.id === nodeId)?.skillId);
     // Notify about checkpoint
     this.sendNotify?.("checkpoint", skill?.name ?? nodeId, "Approval required to continue pipeline").catch(() => {});
     return super.waitForCheckpoint(nodeId);
   }
 
   protected async executeNode(node: PipelineNode): Promise<void> {
-    const skill = ARIS_SKILLS.find((s) => s.id === node.skillId);
+    const skill = RESEARCH_SKILLS.find((s) => s.id === node.skillId);
     if (!skill) {
       throw new Error(`Unknown skill: ${node.skillId}`);
     }
 
-    const command = buildCommand(skill, node.paramValues);
+    // Find upstream skills for context passing
+    const upstreamNodeIds = new Set<string>();
+    for (const edge of this.edges) {
+      if (edge.target === node.id) upstreamNodeIds.add(edge.source);
+    }
+    const upstreamSkills = this.workspacePath
+      ? Array.from(upstreamNodeIds)
+          .map((id) => this.nodes.find((n) => n.id === id))
+          .filter(Boolean)
+          .map((n) => RESEARCH_SKILLS.find((s) => s.id === n!.skillId))
+          .filter(Boolean) as typeof RESEARCH_SKILLS
+      : undefined;
+
+    const { command, stageContext } = this.workspacePath
+      ? buildCommandWithContext(skill, node.paramValues, upstreamSkills)
+      : { command: buildCommand(skill, node.paramValues), stageContext: "" };
+
     this.emit({ type: "log", nodeId: node.id, message: `Launching: ${command}` });
 
-    // Launch session
+    // Launch session with full workspace context
     const res = await fetch("/api/plugins/aris-research/sessions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ skill: skill.name, command }),
+      body: JSON.stringify({
+        skill: skill.name,
+        command,
+        ...(this.workspacePath ? {
+          workspacePath: this.workspacePath,
+          stageContext: stageContext || undefined,
+          iterateUntilSatisfied: true,
+        } : {}),
+      }),
     });
 
     if (!res.ok) {
@@ -102,8 +130,8 @@ export class PipelineExecutor extends BaseExecutor<PipelineNode, PipelineEdge> {
       logFile,
     });
 
-    // Poll for completion
-    await this.waitForCompletion(sessionId, node.id);
+    // Poll for completion — pass logFile so we can stream logs immediately
+    await this.waitForCompletion(sessionId, node.id, logFile);
 
     if (sessionId) this.currentSessionIds.delete(sessionId);
     this.emit({ type: "log", nodeId: node.id, message: `Completed: ${skill.name}` });
@@ -114,23 +142,50 @@ export class PipelineExecutor extends BaseExecutor<PipelineNode, PipelineEdge> {
 
   private async waitForCompletion(
     sessionId: string,
-    nodeId: string
+    nodeId: string,
+    logFilePath?: string
   ): Promise<void> {
-    const INITIAL_INTERVAL_MS = 3000;
-    const MAX_INTERVAL_MS = 30_000;
+    const POLL_INTERVAL_MS = 5000;
     const MAX_TOTAL_MS = 3_600_000; // 1 hour
 
-    let interval = INITIAL_INTERVAL_MS;
     let elapsed = 0;
-    let lastLogOutput = "";
-    let lastProgressEmit = 0;
+    let lastLogLineCount = 0;
 
     while (elapsed < MAX_TOTAL_MS) {
       if (this.aborted) return;
 
-      await sleep(interval);
-      elapsed += interval;
+      await sleep(POLL_INTERVAL_MS);
+      elapsed += POLL_INTERVAL_MS;
 
+      // 1) Stream log file content to dashboard (primary feedback)
+      if (logFilePath) {
+        try {
+          const logRes = await fetch(
+            `/api/plugins/aris-research/sessions/log?path=${encodeURIComponent(logFilePath)}&tail=500`
+          );
+          const logData = await logRes.json();
+          const totalLines = logData.lines ?? 0;
+
+          if (totalLines > lastLogLineCount && logData.content) {
+            const allLines = (logData.content as string).split("\n");
+            const newCount = totalLines - lastLogLineCount;
+            const newLines = allLines.slice(Math.max(0, allLines.length - newCount));
+            for (const line of newLines) {
+              if (line.trim()) {
+                this.emit({ type: "log", nodeId, message: line, sessionId });
+              }
+            }
+            lastLogLineCount = totalLines;
+          }
+
+          // Check completion marker in log content
+          if (logData.completed) return;
+        } catch {
+          // Log fetch failed, fall through to status check
+        }
+      }
+
+      // 2) Check session status via sessions API (backup completion detection)
       try {
         const res = await fetch("/api/plugins/aris-research/sessions");
         const data = await res.json();
@@ -138,33 +193,23 @@ export class PipelineExecutor extends BaseExecutor<PipelineNode, PipelineEdge> {
           (s: { id: string }) => s.id === sessionId
         );
 
-        if (!session) return; // session deleted?
+        if (!session) return; // session gone
         if (session.status === "completed") return;
         if (session.status === "error") {
           throw new Error("Session ended with error");
         }
 
-        // Reset interval to initial when new activity is detected
-        const currentLog = session.lastLog ?? session.output ?? "";
-        if (currentLog && currentLog !== lastLogOutput) {
-          lastLogOutput = currentLog;
-          interval = INITIAL_INTERVAL_MS;
-        } else {
-          // Exponential backoff: double interval, cap at MAX_INTERVAL_MS
-          interval = Math.min(interval * 2, MAX_INTERVAL_MS);
-        }
-
-        // Emit progress roughly every 30s
-        if (elapsed - lastProgressEmit >= 30_000) {
-          lastProgressEmit = elapsed;
+        // If no log file, emit periodic progress
+        if (!logFilePath && elapsed % 30_000 < POLL_INTERVAL_MS) {
           this.emit({
             type: "log",
             nodeId,
-            message: `Still running... (${Math.floor(elapsed / 60_000)}min, poll ${Math.round(interval / 1000)}s)`,
+            message: `Still running... (${Math.floor(elapsed / 60_000)}min)`,
           });
         }
       } catch (err) {
-        throw new Error(`Poll error: ${err}`);
+        if (String(err).includes("Session ended")) throw err;
+        // Network error, retry
       }
     }
 

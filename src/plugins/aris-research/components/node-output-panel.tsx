@@ -15,7 +15,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import type { PipelineNode } from "../types";
-import { ARIS_SKILLS } from "../skill-data";
+import { RESEARCH_SKILLS } from "../skill-data";
 
 interface FileEntry {
   name: string;
@@ -52,7 +52,7 @@ export function NodeOutputPanel({
   onClose,
   isZh,
 }: NodeOutputPanelProps) {
-  const skill = ARIS_SKILLS.find((s) => s.id === node.skillId);
+  const skill = RESEARCH_SKILLS.find((s) => s.id === node.skillId);
   const [files, setFiles] = useState<FileEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentPath, setCurrentPath] = useState<string>("");

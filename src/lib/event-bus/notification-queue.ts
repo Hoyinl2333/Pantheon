@@ -2,7 +2,7 @@
  * Notification Queue
  *
  * Server-side notification storage using a JSON file as a lightweight
- * persistent queue. Notifications are stored in ~/.claude/scc-notifications.json.
+ * persistent queue. Notifications are stored in ~/.claude/ptn-notifications.json.
  *
  * Supports:
  * - Adding notifications
@@ -15,7 +15,7 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 
-const QUEUE_FILE = path.join(os.homedir(), ".claude", "scc-notifications.json");
+const QUEUE_FILE = path.join(os.homedir(), ".claude", "ptn-notifications.json");
 const MAX_NOTIFICATIONS = 200;
 
 export interface StoredNotification {

@@ -35,7 +35,18 @@
       "extendedThinking": "扩展思考",
       "extendedThinkingDesc": "启用深度推理模式处理复杂任务",
       "language": "语言",
-      "languageDesc": "面板显示语言"
+      "languageDesc": "面板显示语言",
+      "sectionModels": "模型",
+      "sectionAppearance": "外观",
+      "sectionBehavior": "行为",
+      "codexModel": "Codex 默认模型",
+      "codexModelDesc": "Codex CLI 会话的默认模型",
+      "codexApiKey": "Codex API Key",
+      "codexApiKeyDesc": "用于 Codex 的 OpenAI API 密钥（来自 API 管理）",
+      "codexApiKeyEnv": "使用 OPENAI_API_KEY 环境变量",
+      "themeSystem": "跟随系统",
+      "themeDark": "深色",
+      "themeLight": "浅色"
     },
     "costAlerts": {
       "title": "费用预警",
@@ -94,12 +105,14 @@
       "chatIdsPlaceholder": "逗号分隔的 Chat ID（留空 = 允许所有人）",
       "saveToEnv": "保存到 .env.local",
       "botMode": "机器人模式",
+      "modePolling": "轮询",
+      "modeWebhook": "Webhook",
       "longPolling": "长轮询",
       "longPollingDesc": "无需公网 URL，机器人主动从 Telegram 拉取消息。",
       "start": "启动",
       "stop": "停止",
       "updateWebhook": "更新",
-      "autoFilledFromBaseUrl": "已从 SCC_BASE_URL 自动填充",
+      "autoFilledFromBaseUrl": "已从 PTN_BASE_URL 自动填充",
       "permissionApproval": "权限审批",
       "approvalReady": "就绪",
       "approvalUnavailable": "不可用",
@@ -244,6 +257,7 @@
       "installed": "已安装",
       "notInstalled": "未安装",
       "installHint": "安装 Codex CLI 以启用 Codex 集成",
+      "configPath": "配置路径",
       "sandbox": "沙箱",
       "trustedProjects": "信任的项目"
     },
@@ -455,7 +469,7 @@
     "noDailyData": "暂无每日数据",
     "allProviders": "所有提供者",
     "claude": "Claude",
-    "codex": "Codex (GPT/o3/o4)",
+    "codex": "Codex",
     "unknown": "未知",
     "costEstimationNotes": "费用估算说明：",
     "noteModelDetection": "模型检测现已扫描所有行以提高准确性",
@@ -631,7 +645,8 @@
     "msgs": "条消息",
     "searchPlaceholder": "搜索对话内容... (Enter 搜索)",
     "userCheckpoints": "用户消息（检查点）",
-    "referencedFiles": "引用的文件"
+    "referencedFiles": "引用的文件",
+    "changes": "变更"
   },
   "apiManagement": {
     "title": "API 管理",
@@ -740,7 +755,7 @@
     "baseUrlHint": "自定义 Base URL 将自动使用 Bearer 认证（OpenAI 兼容）"
   },
   "aris": {
-    "title": "ARIS 研究流水线",
+    "title": "SAGE 流水线",
     "description": "自主 ML 研究流水线 — 27 个 Claude Code 技能，涵盖想法发现、实验、评审循环和论文写作。",
     "skillCount": "个技能",
     "allSkills": "全部技能",
@@ -769,9 +784,9 @@
     "install": {
       "title": "安装指南",
       "step1Title": "1. 复制技能到 ~/.claude/skills/",
-      "step1Desc": "克隆 ARIS 仓库，将所有技能文件复制到 Claude Code 技能目录。",
+      "step1Desc": "克隆技能仓库，将所有技能文件复制到 Claude Code 技能目录。",
       "step2Title": "2. 配置 MCP 服务器",
-      "step2Desc": "ARIS 通过 MCP 使用外部 LLM 作为评审者。选择 Codex MCP 或 LLM Chat MCP。",
+      "step2Desc": "SAGE 通过 MCP 使用外部 LLM 作为评审者。选择 Codex MCP 或 LLM Chat MCP。",
       "step3Title": "3. 配置通知（可选）",
       "step3Desc": "设置飞书 Webhook，在长时间运行的工作流完成时接收推送通知。"
     },
@@ -1047,5 +1062,68 @@
     "depsNotMet": "依赖未满足：需要先激活 {names}",
     "depsNotMetShort": "依赖未满足",
     "tierLabel": "第 {tier} 层"
+  },
+  "dailyBriefing": {
+    "title": "每日简报",
+    "subtitle": "AI 驱动的个性化信息雷达",
+    "refresh": "刷新",
+    "settings": "设置",
+    "noData": "暂无简报数据",
+    "fetchPrompt": "点击刷新，获取最新内容。",
+    "addNeed": "新需求",
+    "sources": {
+      "all": "全部",
+      "github": "GitHub",
+      "huggingface": "HuggingFace",
+      "rss": "RSS",
+      "arxiv": "ArXiv",
+      "web-search": "网页搜索",
+      "custom-api": "自定义 API"
+    },
+    "emptyState": {
+      "addNeedPrompt": "添加一个需求，告诉 AI 你关心什么，然后点击刷新。"
+    },
+    "stats": {
+      "totalItems": "总计",
+      "lastUpdated": "最后更新"
+    },
+    "needCreator": {
+      "title": "创建信息需求",
+      "editTitle": "编辑信息需求",
+      "subtitle": "描述你关心的信息领域，AI 会帮你制定搜索策略",
+      "name": "名称",
+      "namePlaceholder": "例如：LLM Agent 框架",
+      "description": "描述你关心的内容",
+      "descriptionPlaceholder": "例如：我想跟踪 vision-language model 的最新论文和开源实现",
+      "generateStrategy": "生成搜索策略",
+      "strategyTitle": "搜索策略",
+      "keywords": "关键词",
+      "sources": "数据源",
+      "addSource": "添加",
+      "schedule": "频率",
+      "testSearch": "试搜一下",
+      "testResults": "找到 {count} 条结果",
+      "tags": "标签（逗号分隔）",
+      "tagsPlaceholder": "例如：AI, 论文, 开源",
+      "save": "保存",
+      "cancel": "取消"
+    },
+    "needsManager": {
+      "title": "我的信息需求",
+      "addNeed": "添加需求",
+      "addFirst": "添加第一个需求",
+      "empty": "还没有信息需求，点击「新需求」添加。",
+      "lastFetched": "上次抓取",
+      "strategy": "策略详情",
+      "enable": "启用",
+      "disable": "禁用"
+    }
+  },
+  "plugins": {
+    "apiKeys": "API 密钥管理",
+    "agentTeams": "Agent 团队",
+    "sage": "SAGE 研究",
+    "skillTree": "技能树",
+    "dailyBriefing": "每日情报"
   }
 }

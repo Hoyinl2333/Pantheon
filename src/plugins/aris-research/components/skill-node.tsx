@@ -5,7 +5,7 @@ import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { Badge } from "@/components/ui/badge";
 import { Search, Lightbulb, FlaskConical, FileText, Wrench, Loader2, Check, X, Clock, Eye, Lock } from "lucide-react";
 import type { NodeStatus } from "../types";
-import { ARIS_SKILLS } from "../skill-data";
+import { RESEARCH_SKILLS } from "../skill-data";
 
 const STATUS_STYLES: Record<NodeStatus, string> = {
   idle: "border-l-muted-foreground/40",
@@ -46,7 +46,7 @@ interface SkillNodeData {
 }
 
 function SkillNodeInner({ data, selected }: NodeProps & { data: SkillNodeData }) {
-  const skill = ARIS_SKILLS.find((s) => s.id === data.skillId);
+  const skill = RESEARCH_SKILLS.find((s) => s.id === data.skillId);
   if (!skill) return <div className="p-2 text-xs text-red-500">Unknown skill</div>;
 
   const status = data.status ?? "idle";

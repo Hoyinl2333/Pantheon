@@ -26,7 +26,7 @@ import {
   ExternalLink,
   ImageIcon,
 } from "lucide-react";
-import { ARIS_SKILLS } from "../skill-data";
+import { RESEARCH_SKILLS } from "../skill-data";
 import {
   RESEARCH_STAGES,
   STAGE_COLORS,
@@ -204,7 +204,7 @@ function StageDetail({
           <CardContent className="px-4 pb-4 space-y-2">
             {/* Workflow skills first — prominent */}
             {stage.skills.filter((r) => r.isWorkflow).map((ref) => {
-              const skill = ARIS_SKILLS.find((s) => s.id === ref.skillId);
+              const skill = RESEARCH_SKILLS.find((s) => s.id === ref.skillId);
               if (!skill) return null;
               return (
                 <button
@@ -242,7 +242,7 @@ function StageDetail({
 
             {/* Regular skills */}
             {stage.skills.filter((r) => !r.isWorkflow).map((ref) => {
-              const skill = ARIS_SKILLS.find((s) => s.id === ref.skillId);
+              const skill = RESEARCH_SKILLS.find((s) => s.id === ref.skillId);
               if (!skill) return null;
               return (
                 <div

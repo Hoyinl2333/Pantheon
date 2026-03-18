@@ -19,6 +19,7 @@ import { plugin as apiManagementPlugin } from "@/plugins/api-management";
 import { plugin as agentTeamsPlugin } from "@/plugins/agent-teams";
 import { plugin as arisPlugin } from "@/plugins/aris-research";
 import { plugin as skillTreePlugin } from "@/plugins/skill-tree";
+import { plugin as dailyBriefingPlugin } from "@/plugins/daily-briefing";
 
 // ---- All known plugins ----
 const PLUGINS: PluginModule[] = [
@@ -26,6 +27,7 @@ const PLUGINS: PluginModule[] = [
   agentTeamsPlugin,
   arisPlugin,
   skillTreePlugin,
+  dailyBriefingPlugin,
 ];
 
 // ---- Loader ----

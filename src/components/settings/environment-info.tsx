@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Globe, Eye, EyeOff } from "lucide-react";
 import { SettingRow } from "./setting-row";
+import { useTranslations } from "next-intl";
 import type { EnvironmentInfo as EnvInfoType } from "@/lib/settings-reader";
 
 interface EnvironmentInfoProps {
@@ -12,37 +13,38 @@ interface EnvironmentInfoProps {
 
 export function EnvironmentInfoCard({ environment }: EnvironmentInfoProps) {
   const [showApiKey, setShowApiKey] = useState(false);
+  const t = useTranslations("settings.environment");
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2">
           <Globe className="h-5 w-5" />
-          Environment
+          {t("title")}
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          System information and runtime environment details.
+          {t("description")}
         </p>
       </CardHeader>
       <CardContent className="space-y-3">
-        <SettingRow label="Platform" value={environment.platform} />
-        <SettingRow label="Node Version" value={environment.nodeVersion} />
-        <SettingRow label="Home Directory" value={environment.homeDir} />
-        <SettingRow label="Claude Directory" value={environment.claudeDir} />
+        <SettingRow label={t("platform")} value={environment.platform} />
+        <SettingRow label={t("nodeVersion")} value={environment.nodeVersion} />
+        <SettingRow label={t("homeDir")} value={environment.homeDir} />
+        <SettingRow label={t("claudeDir")} value={environment.claudeDir} />
         <SettingRow
-          label="Codex Installed"
+          label={t("codexInstalled")}
           value={environment.codexInstalled}
           type="boolean"
         />
         <SettingRow
-          label="API Key Configured"
+          label={t("apiKeyConfigured")}
           value={environment.hasApiKey}
           type="boolean"
         />
         {environment.hasApiKey && environment.apiKeyMasked && (
           <div className="flex items-center gap-3">
             <div className="text-sm text-muted-foreground min-w-[180px]">
-              API Key
+              {t("apiKey")}
             </div>
             <div className="flex items-center gap-2">
               <code className="text-sm bg-muted px-2 py-1 rounded">
@@ -62,7 +64,7 @@ export function EnvironmentInfoCard({ environment }: EnvironmentInfoProps) {
           </div>
         )}
         {environment.proxyUrl && (
-          <SettingRow label="Proxy" value={environment.proxyUrl} />
+          <SettingRow label={t("proxy")} value={environment.proxyUrl} />
         )}
       </CardContent>
     </Card>

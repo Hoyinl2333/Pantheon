@@ -35,7 +35,18 @@
       "extendedThinking": "Extended Thinking",
       "extendedThinkingDesc": "Enable deep reasoning mode for complex tasks",
       "language": "Language",
-      "languageDesc": "Dashboard display language"
+      "languageDesc": "Dashboard display language",
+      "sectionModels": "Models",
+      "sectionAppearance": "Appearance",
+      "sectionBehavior": "Behavior",
+      "codexModel": "Codex Default Model",
+      "codexModelDesc": "Default model for Codex CLI sessions",
+      "codexApiKey": "Codex API Key",
+      "codexApiKeyDesc": "OpenAI API key for Codex (from API Management)",
+      "codexApiKeyEnv": "Use OPENAI_API_KEY env",
+      "themeSystem": "System",
+      "themeDark": "Dark",
+      "themeLight": "Light"
     },
     "costAlerts": {
       "title": "Cost Alerts",
@@ -94,12 +105,14 @@
       "chatIdsPlaceholder": "Comma-separated chat IDs (empty = allow all)",
       "saveToEnv": "Save to .env.local",
       "botMode": "Bot Mode",
+      "modePolling": "Polling",
+      "modeWebhook": "Webhook",
       "longPolling": "Long Polling",
       "longPollingDesc": "No public URL needed. Bot polls Telegram for updates.",
       "start": "Start",
       "stop": "Stop",
       "updateWebhook": "Update",
-      "autoFilledFromBaseUrl": "Auto-filled from SCC_BASE_URL",
+      "autoFilledFromBaseUrl": "Auto-filled from PTN_BASE_URL",
       "permissionApproval": "Permission Approval",
       "approvalReady": "Ready",
       "approvalUnavailable": "Unavailable",
@@ -238,12 +251,23 @@
         "queue": "View task queue"
       }
     },
+    "claudeCli": {
+      "title": "Claude Code CLI",
+      "description": "Anthropic Claude Code CLI configuration and status.",
+      "installed": "Installed",
+      "notInstalled": "Not Installed",
+      "installHint": "Install Claude Code CLI:",
+      "configPath": "Config Path",
+      "claudeDirectory": "Claude Directory",
+      "mcpServers": "MCP Servers"
+    },
     "codex": {
       "title": "Codex CLI",
       "description": "OpenAI Codex CLI configuration and trusted projects.",
       "installed": "Installed",
       "notInstalled": "Not Installed",
       "installHint": "Install Codex CLI to enable Codex integration",
+      "configPath": "Config Path",
       "sandbox": "Sandbox",
       "trustedProjects": "Trusted Projects"
     },
@@ -455,7 +479,7 @@
     "noDailyData": "No daily data available",
     "allProviders": "All Providers",
     "claude": "Claude",
-    "codex": "Codex (GPT/o3/o4)",
+    "codex": "Codex",
     "unknown": "Unknown",
     "costEstimationNotes": "Cost estimation notes:",
     "noteModelDetection": "Model detection now scans all lines for accuracy",
@@ -631,7 +655,8 @@
     "msgs": "msgs",
     "searchPlaceholder": "Search in conversation... (Enter to search)",
     "userCheckpoints": "User Messages (Checkpoints)",
-    "referencedFiles": "Referenced Files"
+    "referencedFiles": "Referenced Files",
+    "changes": "Changes"
   },
   "apiManagement": {
     "title": "API Management",
@@ -740,7 +765,7 @@
     "baseUrlHint": "Custom base URL will use Bearer auth automatically (OpenAI-compatible)"
   },
   "aris": {
-    "title": "ARIS Research Pipeline",
+    "title": "SAGE Pipeline",
     "description": "Autonomous ML research pipeline — 27 Claude Code skills for idea discovery, experiments, review loops, and paper writing.",
     "skillCount": "skills",
     "allSkills": "All Skills",
@@ -769,9 +794,9 @@
     "install": {
       "title": "Install Guide",
       "step1Title": "1. Copy Skills to ~/.claude/skills/",
-      "step1Desc": "Clone the ARIS repo and copy all skill files into your Claude Code skills directory.",
+      "step1Desc": "Clone the skills repository and copy all skill files into your Claude Code skills directory.",
       "step2Title": "2. Set Up MCP Server",
-      "step2Desc": "ARIS uses an external LLM as reviewer via MCP. Choose Codex MCP or LLM Chat MCP.",
+      "step2Desc": "SAGE uses an external LLM as reviewer via MCP. Choose Codex MCP or LLM Chat MCP.",
       "step3Title": "3. Configure Notifications (Optional)",
       "step3Desc": "Set a Feishu webhook to receive push notifications when long-running workflows complete."
     },
@@ -1047,5 +1072,68 @@
     "depsNotMet": "Dependencies not met: {names} need to be activated first",
     "depsNotMetShort": "Dependencies not met",
     "tierLabel": "Tier {tier}"
+  },
+  "dailyBriefing": {
+    "title": "Daily Briefing",
+    "subtitle": "AI-powered personalized information radar",
+    "refresh": "Refresh",
+    "settings": "Settings",
+    "noData": "No briefing data",
+    "fetchPrompt": "Click Refresh to fetch latest content from your needs.",
+    "addNeed": "New Need",
+    "sources": {
+      "all": "All",
+      "github": "GitHub",
+      "huggingface": "HuggingFace",
+      "rss": "RSS",
+      "arxiv": "ArXiv",
+      "web-search": "Web Search",
+      "custom-api": "Custom API"
+    },
+    "emptyState": {
+      "addNeedPrompt": "Add a need to tell AI what you care about, then click Refresh."
+    },
+    "stats": {
+      "totalItems": "Total",
+      "lastUpdated": "Last updated"
+    },
+    "needCreator": {
+      "title": "Create Information Need",
+      "editTitle": "Edit Information Need",
+      "subtitle": "Describe what you want to track and AI will create a search strategy",
+      "name": "Name",
+      "namePlaceholder": "e.g. LLM Agent Frameworks",
+      "description": "Describe what you care about",
+      "descriptionPlaceholder": "e.g. I want to track the latest VLM papers and open-source implementations",
+      "generateStrategy": "Generate Strategy",
+      "strategyTitle": "Search Strategy",
+      "keywords": "Keywords",
+      "sources": "Sources",
+      "addSource": "Add",
+      "schedule": "Schedule",
+      "testSearch": "Test Search",
+      "testResults": "Found {count} results",
+      "tags": "Tags (comma-separated)",
+      "tagsPlaceholder": "e.g. AI, papers, open-source",
+      "save": "Save",
+      "cancel": "Cancel"
+    },
+    "needsManager": {
+      "title": "My Information Needs",
+      "addNeed": "Add Need",
+      "addFirst": "Add your first need",
+      "empty": "No needs yet. Click 'New Need' to add one.",
+      "lastFetched": "Last fetched",
+      "strategy": "Strategy",
+      "enable": "Enable",
+      "disable": "Disable"
+    }
+  },
+  "plugins": {
+    "apiKeys": "API Keys",
+    "agentTeams": "Agent Teams",
+    "sage": "SAGE",
+    "skillTree": "Skill Tree",
+    "dailyBriefing": "Daily Briefing"
   }
 }

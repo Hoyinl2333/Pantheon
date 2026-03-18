@@ -10,7 +10,7 @@ import type { PluginModule, PluginEntry, PluginManifest, PluginSidebarItem } fro
 
 // ---- Storage Key ----
 
-const STORAGE_KEY = "scc-plugin-state";
+const STORAGE_KEY = "ptn-plugin-state";
 
 // ---- Listener type ----
 

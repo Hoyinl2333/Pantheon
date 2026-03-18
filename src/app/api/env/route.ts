@@ -22,7 +22,7 @@ const ALLOWED_KEYS = [
   "FEISHU_VERIFICATION_TOKEN",
   "FEISHU_ENCRYPT_KEY",
   "FEISHU_ALLOWED_CHATS",
-  "SCC_BASE_URL",
+  "PTN_BASE_URL",
 ];
 
 function getEnvLocalPath(): string {
@@ -72,7 +72,7 @@ function writeEnvLocal(vars: Record<string, string>): void {
 
   // Generate .env.local content
   const lines = [
-    "# Bot configuration (managed by SCC Dashboard)",
+    "# Bot configuration (managed by Pantheon Dashboard)",
     "# Do not edit manually while the dashboard is running.",
     "",
   ];

@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="docs/logo.svg" alt="Super Claude Code" width="128" />
+  <img src="public/logo.svg" alt="Pantheon" width="128" />
 </p>
 
-<h1 align="center">Super Claude Code</h1>
+<h1 align="center">Pantheon</h1>
 
 <p align="center">
-  <strong>The management dashboard for Claude Code — monitor, chat, orchestrate, research, and customize.</strong>
+  <strong>AI Agent Orchestration Platform (PTN) — monitor, chat, orchestrate, research, and customize.</strong>
 </p>
 
 <p align="center">
@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-4.4.0-blue" alt="Version" />
+  <img src="https://img.shields.io/badge/version-4.5.0-blue" alt="Version" />
   <img src="https://img.shields.io/badge/Next.js-16-black" alt="Next.js" />
   <img src="https://img.shields.io/badge/TypeScript-5.x-blue" alt="TypeScript" />
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License" />
@@ -62,7 +62,7 @@
 | **Usage Examples** | "Try It" section with clickable links and terminal commands |
 | **Dependency Check** | Blocks activation if prerequisites not met, shows warning |
 
-### ARIS Research Pipeline
+### SAGE Research Pipeline
 
 | Feature | Description |
 |---------|-------------|
@@ -120,9 +120,9 @@
 |--------------------|-------------------|
 | ![Skill Tree List](docs/screenshots/skill-tree-list.png) | ![Skill Tree Graph](docs/screenshots/skill-tree-graph.png) |
 
-| ARIS Research | Agent Teams |
+| SAGE Research | Agent Teams |
 |---------------|-------------|
-| ![ARIS](docs/screenshots/aris-pipeline.png) | ![Teams](docs/screenshots/agent-teams.png) |
+| ![SAGE](docs/screenshots/aris-pipeline.png) | ![Teams](docs/screenshots/agent-teams.png) |
 
 | Tokens | Toolbox |
 |--------|---------|
@@ -187,7 +187,7 @@ dashboard/
 │   │   └── plugins/[pluginId]/ # Dynamic plugin pages
 │   ├── plugins/                # Modular plugin system
 │   │   ├── skill-tree/         # Skill Tree (1.8K LOC)
-│   │   ├── aris-research/      # ARIS Research (9.6K LOC)
+│   │   ├── aris-research/      # SAGE Research (9.6K LOC)
 │   │   ├── agent-teams/        # Agent Teams (3.5K LOC)
 │   │   └── api-management/     # API Key Management
 │   ├── components/             # Shared UI (shadcn/ui)
@@ -210,7 +210,7 @@ dashboard/
 | Language | **TypeScript 5.x** |
 | Styling | **Tailwind CSS v4** |
 | UI | **shadcn/ui** |
-| Graphs | **React Flow** (Skill Tree, ARIS Canvas, Agent Teams) |
+| Graphs | **React Flow** (Skill Tree, SAGE Canvas, Agent Teams) |
 | Charts | **Recharts** (Token analytics) |
 | Data | Local filesystem (`~/.claude/`, `~/.codex/`) |
 | i18n | **next-intl** (EN / 中文) |
@@ -230,11 +230,12 @@ dashboard/
 
 | Version | Date | Highlights |
 |---------|------|------------|
-| **v4.4.0** | 2026-03-18 | Skill Tree (smart creator + auto-detect + config), ARIS report, Agent Teams refactor, Chat perf |
+| **v4.5.0** | 2026-03-18 | Rebranded to Pantheon, SAGE research pipeline, code quality improvements |
+| **v4.4.0** | 2026-03-18 | Skill Tree (smart creator + auto-detect + config), SAGE report, Agent Teams refactor, Chat perf |
 | **v4.3.0** | 2026-03-17 | Skill Tree dual view (list + graph), 49 skills, 8 categories |
-| **v4.1.0** | 2026-03-17 | ARIS results, checkpoints, notifications, Agent Teams executor |
-| **v4.0.0** | 2026-03-17 | Agent Teams canvas, ARIS engine, workspace system |
-| **v3.1.0** | 2026-03-16 | Agent Teams plugin, ARIS Research plugin, Turbopack |
+| **v4.1.0** | 2026-03-17 | SAGE results, checkpoints, notifications, Agent Teams executor |
+| **v4.0.0** | 2026-03-17 | Agent Teams canvas, SAGE engine, workspace system |
+| **v3.1.0** | 2026-03-16 | Agent Teams plugin, SAGE Research plugin, Turbopack |
 | **v3.0.0** | 2026-03-16 | API Management, performance optimization, full i18n |
 | **v2.1.0** | 2026-02-24 | Settings refactor, Queue, Telegram/Feishu, testing |
 | **v2.0.0** | 2026-02-23 | Chat streaming, Codex integration, provider system |
@@ -258,7 +259,7 @@ dashboard/
 - [ ] Session detail viewer — structured tool calls & file changes from JSONL
 - [ ] Skill Tree: sub-skill expansion (drill into skill internals)
 - [ ] Skill Tree: disable actually removes skill/MCP from system
-- [ ] ARIS: node right-click menu, smart parameter inference
+- [ ] SAGE: node right-click menu, smart parameter inference
 - [ ] Agent Teams: undo/redo in canvas, team export/import
 
 ### v5.0 — Intelligence Layer
@@ -282,5 +283,5 @@ MIT
 ---
 
 <p align="center">
-  Built with Claude Code + Super Claude Code
+  Built with Claude Code + Pantheon
 </p>

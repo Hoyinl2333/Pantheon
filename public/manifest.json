@@ -1,6 +1,6 @@
 {
-  "name": "Super Claude Code",
-  "short_name": "SCC",
+  "name": "Pantheon",
+  "short_name": "Pantheon",
   "description": "Claude Code Management Dashboard",
   "start_url": "/",
   "display": "standalone",

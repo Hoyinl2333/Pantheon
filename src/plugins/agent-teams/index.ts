@@ -16,7 +16,7 @@ export const plugin: PluginModule = {
     name: "Agent Teams",
     version: "1.0.0",
     description: "Multi-agent teams with per-member model/provider configuration",
-    author: "SCC Team",
+    author: "Pantheon Team",
     icon: Users,
     routes: [
       { path: "", title: "Agent Teams" },

@@ -27,7 +27,7 @@ export function useLocale() {
 
 function getStoredLocale(): Locale {
   if (typeof window === "undefined") return defaultLocale;
-  const stored = localStorage.getItem("scc-locale");
+  const stored = localStorage.getItem("ptn-locale");
   if (stored === "en" || stored === "zh-CN") return stored;
   return defaultLocale;
 }
@@ -60,7 +60,7 @@ export function I18nProvider({ children }: I18nProviderProps) {
   const setLocale = useCallback(
     (newLocale: Locale) => {
       setLocaleState(newLocale);
-      localStorage.setItem("scc-locale", newLocale);
+      localStorage.setItem("ptn-locale", newLocale);
       loadMessages(newLocale);
       // Update html lang attribute
       document.documentElement.lang = newLocale;

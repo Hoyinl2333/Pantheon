@@ -131,7 +131,7 @@ export function GeneralSettings({
       </CardHeader>
       <CardContent className="space-y-5">
         {/* Models Section */}
-        <SectionHeader>Models</SectionHeader>
+        <SectionHeader>{t("sectionModels")}</SectionHeader>
 
         {/* Claude Default Model */}
         <div className="flex items-center justify-between">
@@ -158,9 +158,9 @@ export function GeneralSettings({
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-sm font-medium">Codex Default Model</div>
+                <div className="text-sm font-medium">{t("codexModel")}</div>
                 <div className="text-xs text-muted-foreground">
-                  Default model for Codex CLI sessions
+                  {t("codexModelDesc")}
                 </div>
               </div>
               <Select value={codexDefaultModel} onValueChange={onCodexDefaultModelChange}>
@@ -187,10 +187,10 @@ export function GeneralSettings({
               <div>
                 <div className="text-sm font-medium flex items-center gap-1.5">
                   <KeyRound className="h-3.5 w-3.5" />
-                  Codex API Key
+                  {t("codexApiKey")}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  OpenAI API key for Codex (from API Management)
+                  {t("codexApiKeyDesc")}
                 </div>
               </div>
               <Select value={codexApiKeyId} onValueChange={onCodexApiKeyChange}>
@@ -198,7 +198,7 @@ export function GeneralSettings({
                   <SelectValue placeholder="OPENAI_API_KEY env" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="env">Use OPENAI_API_KEY env</SelectItem>
+                  <SelectItem value="env">{t("codexApiKeyEnv")}</SelectItem>
                   {apiKeys.map((k) => (
                     <SelectItem key={k.id} value={k.id}>
                       <span className="flex items-center gap-1.5">
@@ -214,7 +214,7 @@ export function GeneralSettings({
         )}
 
         {/* Appearance Section */}
-        <SectionHeader>Appearance</SectionHeader>
+        <SectionHeader>{t("sectionAppearance")}</SectionHeader>
 
         {/* Theme */}
         <div className="flex items-center justify-between">
@@ -229,9 +229,9 @@ export function GeneralSettings({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="system">System</SelectItem>
-              <SelectItem value="dark">Dark</SelectItem>
-              <SelectItem value="light">Light</SelectItem>
+              <SelectItem value="system">{t("themeSystem")}</SelectItem>
+              <SelectItem value="dark">{t("themeDark")}</SelectItem>
+              <SelectItem value="light">{t("themeLight")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -259,7 +259,7 @@ export function GeneralSettings({
         </div>
 
         {/* Behavior Section */}
-        <SectionHeader>Behavior</SectionHeader>
+        <SectionHeader>{t("sectionBehavior")}</SectionHeader>
 
         {/* Auto Update */}
         <div className="flex items-center justify-between">

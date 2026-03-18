@@ -78,8 +78,8 @@ export function TelegramSettings() {
 
         if (botRes.url) {
           setWebhookUrl(botRes.url);
-        } else if (vars.SCC_BASE_URL) {
-          const presetUrl = `${vars.SCC_BASE_URL.value}/api/bot/telegram`;
+        } else if (vars.PTN_BASE_URL) {
+          const presetUrl = `${vars.PTN_BASE_URL.value}/api/bot/telegram`;
           setWebhookUrl(presetUrl);
           setWebhookAutoFilled(true);
         }
@@ -339,7 +339,7 @@ export function TelegramSettings() {
                   }`}
                 >
                   <Radio className="h-3.5 w-3.5" />
-                  Polling
+                  {t("modePolling")}
                 </button>
                 <button
                   onClick={() => setBotMode("webhook")}
@@ -350,7 +350,7 @@ export function TelegramSettings() {
                   }`}
                 >
                   <Globe className="h-3.5 w-3.5" />
-                  Webhook
+                  {t("modeWebhook")}
                 </button>
               </div>
             </div>

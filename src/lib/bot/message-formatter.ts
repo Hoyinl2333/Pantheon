@@ -44,7 +44,7 @@ export function formatSessionList(sessions: SessionSummary[]): BotReply {
 /** Format system status for mobile display */
 export function formatStatus(info: BotStatusInfo): BotReply {
   const lines = [
-    "📊 *SCC Dashboard Status*",
+    "📊 *Pantheon Dashboard Status*",
     "",
     `Sessions: ${info.totalSessions} total, ${info.activeSessions} active`,
     `Projects: ${info.totalProjects}`,
@@ -60,7 +60,7 @@ export function formatStatus(info: BotStatusInfo): BotReply {
 /** Format help text */
 export function formatHelp(): BotReply {
   const lines = [
-    "🤖 *Super Claude Code Bot*",
+    "🤖 *Pantheon Bot*",
     "",
     "Available commands:",
     "",

@@ -20,7 +20,7 @@ const KNOWN_PLUGINS = [
     name: "API Management",
     version: "0.1.0",
     description: "Manage API keys and provider configurations",
-    author: "SCC Team",
+    author: "Pantheon Team",
     icon: "Key",
   },
 ];

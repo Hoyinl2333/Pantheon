@@ -13,7 +13,7 @@ describe("formatHelp", () => {
     const result = formatHelp();
 
     expect(result.parseMode).toBe("markdown");
-    expect(result.text).toContain("Super Claude Code Bot");
+    expect(result.text).toContain("Pantheon Bot");
     expect(result.text).toContain("/sessions");
     expect(result.text).toContain("/chat");
     expect(result.text).toContain("/bg");
@@ -49,7 +49,7 @@ describe("formatStatus", () => {
     const result = formatStatus(info);
 
     expect(result.parseMode).toBe("markdown");
-    expect(result.text).toContain("SCC Dashboard Status");
+    expect(result.text).toContain("Pantheon Dashboard Status");
     expect(result.text).toContain("42 total");
     expect(result.text).toContain("3 active");
     expect(result.text).toContain("7");

@@ -2,7 +2,7 @@
  * Execution State Persistence
  *
  * Stores and retrieves pipeline execution state for checkpoint/resume capability.
- * Uses the existing ARIS store API with "execution-states" key.
+ * Uses the existing research store API with "execution-states" key.
  */
 
 const API = "/api/plugins/aris-research/store";

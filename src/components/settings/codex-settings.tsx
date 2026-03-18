@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Zap, XCircle } from "lucide-react";
 import { SettingRow } from "./setting-row";
+import { useTranslations } from "next-intl";
 import type { CodexSettings } from "@/lib/settings-reader";
 
 interface CodexSettingsComponentProps {
@@ -11,28 +12,30 @@ interface CodexSettingsComponentProps {
 }
 
 export function CodexSettingsComponent({ codex }: CodexSettingsComponentProps) {
+  const t = useTranslations("settings.codex");
+
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2">
           <Zap className="h-5 w-5" />
-          Codex CLI
+          {t("title")}
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          OpenAI Codex CLI configuration and trusted projects.
+          {t("description")}
         </p>
       </CardHeader>
       <CardContent className="space-y-3">
         {codex ? (
           <>
-            <SettingRow label="Installed" value={true} type="boolean" />
-            <SettingRow label="Config Path" value="~/.codex/config.toml" />
+            <SettingRow label={t("installed")} value={true} type="boolean" />
+            <SettingRow label={t("configPath")} value="~/.codex/config.toml" />
             {codex.sandbox && (
-              <SettingRow label="Sandbox" value={String(codex.sandbox)} />
+              <SettingRow label={t("sandbox")} value={String(codex.sandbox)} />
             )}
             {codex.projects.length > 0 && (
               <div className="space-y-2">
-                <div className="text-sm text-muted-foreground">Trusted Projects</div>
+                <div className="text-sm text-muted-foreground">{t("trustedProjects")}</div>
                 <div className="space-y-1">
                   {codex.projects.map((p) => (
                     <div key={p.path} className="flex items-center gap-2">
@@ -56,11 +59,11 @@ export function CodexSettingsComponent({ codex }: CodexSettingsComponentProps) {
             <div className="flex items-center gap-2">
               <Badge variant="secondary">
                 <XCircle className="h-3 w-3 mr-1" />
-                Not Installed
+                {t("notInstalled")}
               </Badge>
             </div>
             <div className="text-sm text-muted-foreground">
-              Install Codex CLI to enable Codex integration:
+              {t("installHint")}
             </div>
             <code className="block text-xs bg-muted px-3 py-2 rounded-md">
               npm install -g @openai/codex

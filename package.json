@@ -1,6 +1,6 @@
 {
-  "name": "dashboard",
-  "version": "4.4.0",
+  "name": "pantheon-dashboard",
+  "version": "4.5.0",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",

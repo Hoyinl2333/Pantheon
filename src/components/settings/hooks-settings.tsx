@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Zap } from "lucide-react";
 import { HookDisplay } from "./setting-row";
+import { useTranslations } from "next-intl";
 import type { ClaudeSettings } from "@/lib/settings-reader";
 
 interface HooksSettingsProps {
@@ -10,27 +11,29 @@ interface HooksSettingsProps {
 }
 
 export function HooksSettings({ merged }: HooksSettingsProps) {
+  const t = useTranslations("settings.hooks");
+
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2">
           <Zap className="h-5 w-5" />
-          Hooks
+          {t("title")}
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          Shell commands that execute in response to tool lifecycle events.
+          {t("description")}
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
         <HookDisplay
-          label="PreToolUse Hook"
+          label={t("preToolUse")}
           hook={merged.preToolUseHook}
         />
         <HookDisplay
-          label="PostToolUse Hook"
+          label={t("postToolUse")}
           hook={merged.postToolUseHook}
         />
-        <HookDisplay label="Stop Hook" hook={merged.stopHook} />
+        <HookDisplay label={t("stop")} hook={merged.stopHook} />
       </CardContent>
     </Card>
   );

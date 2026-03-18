@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 
-const DATA_DIR = path.join(os.homedir(), ".claude", "scc-data", "skill-tree");
+const DATA_DIR = path.join(os.homedir(), ".claude", "ptn-data", "skill-tree");
 
 function ensureDir() {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
