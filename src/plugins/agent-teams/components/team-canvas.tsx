@@ -22,8 +22,8 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
-import dagre from "dagre";
 import { Button } from "@/components/ui/button";
+import { applyDagreLayout, extractPositions } from "@/lib/canvas";
 import { LayoutGrid, Maximize2, Save, Play, RotateCcw } from "lucide-react";
 
 import type { AgentTeam, TeamMember } from "../types";
@@ -116,40 +116,14 @@ function membersToEdges(members: TeamMember[]): Edge[] {
   return edges;
 }
 
-/** Auto-layout nodes using dagre */
-function autoLayoutNodes(nodes: Node[], edges: Edge[]): Node[] {
-  if (nodes.length === 0) return nodes;
-
-  const g = new dagre.graphlib.Graph();
-  g.setDefaultEdgeLabel(() => ({}));
-  g.setGraph({ rankdir: "TB", ranksep: 80, nodesep: 60 });
-
-  for (const node of nodes) {
-    g.setNode(node.id, { width: AGENT_NODE_WIDTH, height: AGENT_NODE_HEIGHT });
-  }
-  for (const edge of edges) {
-    g.setEdge(edge.source, edge.target);
-  }
-
-  dagre.layout(g);
-
-  return nodes.map((node) => {
-    const pos = g.node(node.id);
-    return {
-      ...node,
-      position: { x: pos.x - AGENT_NODE_WIDTH / 2, y: pos.y - AGENT_NODE_HEIGHT / 2 },
-    };
-  });
-}
-
-/** Extract node positions from current nodes */
-function extractPositions(nodes: Node[]): Record<string, { x: number; y: number }> {
-  const positions: Record<string, { x: number; y: number }> = {};
-  for (const n of nodes) {
-    positions[n.id] = { x: n.position.x, y: n.position.y };
-  }
-  return positions;
-}
+/** dagre layout options matching the original inline constants */
+const DAGRE_OPTIONS = {
+  rankdir: "TB" as const,
+  ranksep: 80,
+  nodesep: 60,
+  nodeWidth: AGENT_NODE_WIDTH,
+  nodeHeight: AGENT_NODE_HEIGHT,
+};
 
 // ---- Canvas Inner ----
 interface TeamCanvasInnerProps {
@@ -220,7 +194,7 @@ function TeamCanvasInner({ team, onTeamUpdate, locale }: TeamCanvasInnerProps) {
       setEdges(initialEdges);
     } else {
       // Auto-layout
-      const laid = autoLayoutNodes(initialNodes, initialEdges);
+      const laid = applyDagreLayout(initialNodes, initialEdges, DAGRE_OPTIONS);
       setNodes(laid);
       setEdges(initialEdges);
     }
@@ -338,7 +312,7 @@ function TeamCanvasInner({ team, onTeamUpdate, locale }: TeamCanvasInnerProps) {
   }, [screenToFlowPosition, setNodes, isZh]);
 
   const handleAutoLayout = useCallback(() => {
-    const laid = autoLayoutNodes(nodes, edges);
+    const laid = applyDagreLayout(nodes, edges, DAGRE_OPTIONS);
     setNodes(laid);
     setTimeout(() => fitView({ padding: 0.2 }), 100);
   }, [nodes, edges, setNodes, fitView]);
@@ -671,7 +645,7 @@ function TeamCanvasInner({ team, onTeamUpdate, locale }: TeamCanvasInnerProps) {
           <div className="flex items-center gap-2">
             <input
               className="flex-1 h-8 px-3 rounded-md border border-input bg-background text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              placeholder={isZh ? "输入任务指令给 Agent 团队..." : "Enter the task prompt for the agent team..."}
+              placeholder={isZh ? "输入任务指令给工作流工作室..." : "Enter the task prompt for the workflow studio..."}
               value={promptInput}
               onChange={(e) => setPromptInput(e.target.value)}
               onKeyDown={(e) => {

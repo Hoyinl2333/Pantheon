@@ -21,12 +21,13 @@ import "@xyflow/react/dist/style.css";
 
 import type { Pipeline, PipelineNode, PipelineEdge, ResearchProgram, NodeStatus } from "../types";
 import { RESEARCH_SKILLS } from "../skill-data";
-import { autoLayout } from "../lib/auto-layout";
+import { applyDagreLayout } from "@/lib/canvas";
 import { PIPELINE_TEMPLATES } from "../pipeline-templates";
 import { savePipeline, getPipeline } from "../pipeline-store";
 import { PipelineExecutor, type ExecutionEvent } from "../lib/pipeline-executor";
 import { getExecutionState, clearExecutionState } from "../lib/execution-state";
 import { getArisConfig } from "../aris-store";
+import { useBackoffPoll } from "../lib/use-backoff-poll";
 import { nodeTypes } from "./skill-node";
 import { ContextBar } from "./context-bar";
 import { LeftPanel } from "./left-panel";
@@ -288,10 +289,16 @@ function PipelineCanvasInner({ locale, onBack }: { locale: string; onBack: () =>
   }, [setNodes, setEdges, fitView, isZh]);
 
   const handleAutoLayout = useCallback(() => {
-    const laid = autoLayout(fromFlowNodes(nodes), fromFlowEdges(edges));
-    setNodes(toFlowNodes(laid, isZh));
+    const laid = applyDagreLayout(nodes, edges, {
+      rankdir: "TB",
+      ranksep: 80,
+      nodesep: 50,
+      nodeWidth: 240,
+      nodeHeight: 80,
+    });
+    setNodes(laid);
     setTimeout(() => fitView({ padding: 0.2 }), 100);
-  }, [nodes, edges, setNodes, fitView, isZh]);
+  }, [nodes, edges, setNodes, fitView]);
 
   const handleSave = useCallback(async () => {
     await savePipeline(currentPipeline);
@@ -371,33 +378,30 @@ function PipelineCanvasInner({ locale, onBack }: { locale: string; onBack: () =>
     }
   }, [updateNodeStatus]);
 
-  // Poll sessions for status (works after page reload)
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  useEffect(() => {
-    if (!isRunning) {
-      if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
-      return;
-    }
-    const pollSessions = async () => {
-      if (executorActiveRef.current) return;
-      try {
-        const res = await fetch("/api/plugins/aris-research/sessions");
-        const data = await res.json();
-        const hasRunning = (data.sessions ?? []).some((s: { status: string }) => s.status === "running");
-        if (!hasRunning) {
-          setIsRunning(false);
-          const state = await getExecutionState(pipelineId);
-          if (state) {
-            for (const id of state.completedNodes) updateNodeStatus(id, "done");
-            for (const id of Object.keys(state.errorNodes)) updateNodeStatus(id, "error");
-            for (const id of state.skippedNodes) updateNodeStatus(id, "skipped");
-          }
+  // Poll sessions for status with exponential backoff (works after page reload)
+  const pollSessions = useCallback(async () => {
+    if (executorActiveRef.current) return;
+    try {
+      const res = await fetch("/api/plugins/aris-research/sessions");
+      const data = await res.json();
+      const hasRunning = (data.sessions ?? []).some((s: { status: string }) => s.status === "running");
+      if (!hasRunning) {
+        setIsRunning(false);
+        const state = await getExecutionState(pipelineId);
+        if (state) {
+          for (const id of state.completedNodes) updateNodeStatus(id, "done");
+          for (const id of Object.keys(state.errorNodes)) updateNodeStatus(id, "error");
+          for (const id of state.skippedNodes) updateNodeStatus(id, "skipped");
         }
-      } catch { /* ignore */ }
-    };
-    pollingRef.current = setInterval(pollSessions, 10000);
-    return () => { if (pollingRef.current) clearInterval(pollingRef.current); };
-  }, [isRunning, pipelineId, updateNodeStatus]);
+      }
+    } catch { /* ignore */ }
+  }, [pipelineId, updateNodeStatus]);
+
+  useBackoffPoll(pollSessions, {
+    enabled: isRunning,
+    initialMs: 2000,
+    maxMs: 30000,
+  });
 
   const createExecutionListener = useCallback((onDone?: () => void) => {
     return (event: ExecutionEvent) => {

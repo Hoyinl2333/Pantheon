@@ -24,6 +24,7 @@ import type { InfoNeed, DailyBriefing } from "./types";
 import { BriefingCard } from "./components/briefing-card";
 import { NeedsManager } from "./components/needs-manager";
 import { NeedCreatorDialog } from "./components/need-creator-dialog";
+import { BriefingSettings } from "./components/briefing-settings";
 
 function todayStr(): string {
   return new Date().toISOString().slice(0, 10);
@@ -54,6 +55,7 @@ export function DailyBriefingPage() {
   const [needs, setNeeds] = useState<InfoNeed[]>([]);
   const [loading, setLoading] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [configOpen, setConfigOpen] = useState(false);
   const [creatorOpen, setCreatorOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string>("all");
 
@@ -177,7 +179,7 @@ export function DailyBriefingPage() {
             <Plus className="h-4 w-4 mr-1" />
             {isZh ? "新需求" : "New Need"}
           </Button>
-          <Button variant="ghost" size="sm" className="h-9 w-9 p-0" onClick={() => setSettingsOpen(true)}>
+          <Button variant="ghost" size="sm" className="h-9 w-9 p-0" onClick={() => setConfigOpen(true)} title={isZh ? "设置" : "Settings"}>
             <Settings className="h-4 w-4" />
           </Button>
         </div>
@@ -252,6 +254,9 @@ export function DailyBriefingPage() {
 
       {/* Need creator dialog */}
       <NeedCreatorDialog open={creatorOpen} onClose={() => setCreatorOpen(false)} onCreated={() => { loadNeeds(); setCreatorOpen(false); }} isZh={isZh} />
+
+      {/* Config settings drawer */}
+      <BriefingSettings open={configOpen} onClose={() => setConfigOpen(false)} isZh={isZh} />
     </div>
   );
 }

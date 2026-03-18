@@ -70,7 +70,7 @@
 | **自动报告** | 流水线完成后生成结构化报告（摘要卡片 + 时间线） |
 | **阶段同步** | 技能完成时自动更新阶段状态 |
 
-### Agent 团队
+### 工作流工作室
 
 | 功能 | 说明 |
 |------|------|
@@ -115,7 +115,7 @@
 |----------------|----------------|
 | ![技能树列表](docs/screenshots/skill-tree-list.png) | ![技能树图谱](docs/screenshots/skill-tree-graph.png) |
 
-| SAGE 科研 | Agent 团队 |
+| SAGE 科研 | 工作流工作室 |
 |-----------|-----------|
 | ![SAGE](docs/screenshots/aris-pipeline.png) | ![团队](docs/screenshots/agent-teams.png) |
 
@@ -176,7 +176,7 @@ dashboard/
 │   ├── plugins/                # 模块化插件系统
 │   │   ├── skill-tree/         # 技能树 (1.8K 行)
 │   │   ├── aris-research/      # SAGE 科研 (9.6K 行)
-│   │   ├── agent-teams/        # Agent 团队 (3.5K 行)
+│   │   ├── agent-teams/        # 工作流工作室 (3.5K 行)
 │   │   └── api-management/     # API 密钥管理
 │   ├── components/             # 共享 UI (shadcn/ui)
 │   ├── lib/                    # 核心逻辑
@@ -195,7 +195,7 @@ dashboard/
 | 语言 | **TypeScript 5.x** |
 | 样式 | **Tailwind CSS v4** |
 | UI | **shadcn/ui** |
-| 图可视化 | **React Flow**（技能树、SAGE 画布、Agent 团队） |
+| 图可视化 | **React Flow**（技能树、SAGE 画布、工作流工作室） |
 | 数据图表 | **Recharts**（Token 分析） |
 | 数据源 | 本地文件（`~/.claude/`、`~/.codex/`） |
 | 国际化 | **next-intl**（EN / 中文） |
@@ -215,10 +215,10 @@ dashboard/
 | 版本 | 日期 | 亮点 |
 |------|------|------|
 | **v4.5.0** | 2026-03-18 | 品牌升级为 Pantheon，SAGE 科研流水线，代码质量优化 |
-| **v4.4.0** | 2026-03-18 | 技能树智能创建 + SAGE 报告 + Agent 团队重构 + 聊天性能 |
+| **v4.4.0** | 2026-03-18 | 技能树智能创建 + SAGE 报告 + 工作流工作室重构 + 聊天性能 |
 | **v4.3.0** | 2026-03-17 | 技能树双视图，49 技能，8 大分类 |
 | **v4.1.0** | 2026-03-17 | SAGE 结果查看、检查点、通知、Agent 执行器 |
-| **v4.0.0** | 2026-03-17 | Agent 团队画布、SAGE 引擎、工作区 |
+| **v4.0.0** | 2026-03-17 | 工作流工作室画布、SAGE 引擎、工作区 |
 | **v3.0.0** | 2026-03-16 | API 管理、性能优化、完整国际化 |
 | **v2.0.0** | 2026-02-23 | 流式聊天、Codex 集成、Provider 系统 |
 | **v1.0.0** | 2026-02-20 | GPT 风格聊天、会话管理、工具箱 |
@@ -242,7 +242,7 @@ dashboard/
 - [ ] 技能树：子技能展开（深入技能内部能力点）
 - [ ] 技能树：禁用时真正移除对应 skill/MCP
 - [ ] SAGE：节点右键菜单、智能参数推断
-- [ ] Agent 团队：画布撤销/重做、团队导入导出
+- [ ] 工作流工作室：画布撤销/重做、团队导入导出
 
 ### v5.0 — 智能层
 - [ ] 每日情报简报（GitHub Trending + HF Papers + RSS + AI 摘要）

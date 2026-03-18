@@ -1,5 +1,5 @@
 /**
- * Agent Teams Plugin - Preset Team Templates
+ * Workflow Studio Plugin - Preset Team Templates
  *
  * Built-in team configurations that users can clone and customize.
  */

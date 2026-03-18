@@ -1,5 +1,5 @@
 /**
- * Agent Teams Plugin
+ * Workflow Studio Plugin
  *
  * Create and manage multi-agent teams where each member
  * can use a different model/provider/API key combination.
@@ -13,18 +13,18 @@ import { Users } from "lucide-react";
 export const plugin: PluginModule = {
   manifest: {
     id: "agent-teams",
-    name: "Agent Teams",
+    name: "Workflow Studio",
     version: "1.0.0",
     description: "Multi-agent teams with per-member model/provider configuration",
     author: "Pantheon Team",
     icon: Users,
     routes: [
-      { path: "", title: "Agent Teams" },
+      { path: "", title: "Workflow Studio" },
     ],
     sidebarItems: [
       {
         path: "",
-        label: "Agent Teams",
+        label: "Workflow Studio",
         icon: Users,
         order: 2,
       },
@@ -36,10 +36,10 @@ export const plugin: PluginModule = {
   },
 
   onLoad: async () => {
-    console.log("[Plugin] Agent Teams loaded");
+    console.log("[Plugin] Workflow Studio loaded");
   },
 
   onUnload: async () => {
-    console.log("[Plugin] Agent Teams unloaded");
+    console.log("[Plugin] Workflow Studio unloaded");
   },
 };

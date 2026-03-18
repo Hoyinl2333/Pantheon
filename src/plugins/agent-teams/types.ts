@@ -1,5 +1,5 @@
 /**
- * Agent Teams Plugin - Type Definitions
+ * Workflow Studio Plugin - Type Definitions
  *
  * Defines the data model for agent teams where each member
  * can use a different provider/model/API key combination.

@@ -88,7 +88,7 @@ const FlowCanvasInner = memo(function FlowCanvasInner({
 
 /**
  * Reusable Flow Canvas with ReactFlowProvider wrapper.
- * Use this as the base for both SAGE pipeline and Agent Teams canvases.
+ * Use this as the base for both SAGE pipeline and Workflow Studio canvases.
  */
 export function FlowCanvas(props: FlowCanvasProps) {
   return (

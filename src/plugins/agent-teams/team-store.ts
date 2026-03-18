@@ -1,5 +1,5 @@
 /**
- * Agent Teams Plugin - Team Store (v4.0)
+ * Workflow Studio Plugin - Team Store (v4.0)
  *
  * File-based persistence via API with in-memory cache.
  * Async API functions + deprecated sync fallbacks for backward compatibility.

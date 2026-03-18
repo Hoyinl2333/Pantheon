@@ -77,7 +77,7 @@
 - [ ] Stage-skill sync (auto-update stage status)
 - [ ] Exponential backoff polling (3s → 30s)
 
-### Agent Teams (`/plugins/agent-teams`)
+### Workflow Studio (`/plugins/agent-teams`)
 - [ ] 5 preset templates (Pair Programming, TDD Squad, etc.)
 - [ ] Team card view with member count
 - [ ] Visual canvas editor (React Flow)
@@ -175,8 +175,8 @@
 5. Show live logs scrolling, mini DAG updating
 6. After completion → show Report tab with timeline
 
-### Scene 5: Agent Teams (45s)
-**Shot:** Navigate to Agent Teams
+### Scene 5: Workflow Studio (45s)
+**Shot:** Navigate to Workflow Studio
 **Action sequence:**
 1. Show preset gallery → click "Pair Programming"
 2. Click canvas icon → show visual editor
@@ -233,7 +233,7 @@ Use browser DevTools > Device Toolbar > 1920x1080:
 - [ ] Skill Tree list (3+ categories expanded, 1 selected)
 - [ ] Skill Tree graph (zoomed out, full tree visible)
 - [ ] ARIS canvas (nodes connected, pipeline running)
-- [ ] Agent Teams canvas (3+ members, edges)
+- [ ] Workflow Studio canvas (3+ members, edges)
 - [ ] Tokens chart (with data, zoomed in)
 - [ ] Settings (Telegram wizard open)
 

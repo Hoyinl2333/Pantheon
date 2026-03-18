@@ -73,7 +73,7 @@
 | **Auto Report** | Structured report with timeline on pipeline completion |
 | **Stage Sync** | Auto-updates stage status when skills complete |
 
-### Agent Teams
+### Workflow Studio
 
 | Feature | Description |
 |---------|-------------|
@@ -120,7 +120,7 @@
 |--------------------|-------------------|
 | ![Skill Tree List](docs/screenshots/skill-tree-list.png) | ![Skill Tree Graph](docs/screenshots/skill-tree-graph.png) |
 
-| SAGE Research | Agent Teams |
+| SAGE Research | Workflow Studio |
 |---------------|-------------|
 | ![SAGE](docs/screenshots/aris-pipeline.png) | ![Teams](docs/screenshots/agent-teams.png) |
 
@@ -188,7 +188,7 @@ dashboard/
 │   ├── plugins/                # Modular plugin system
 │   │   ├── skill-tree/         # Skill Tree (1.8K LOC)
 │   │   ├── aris-research/      # SAGE Research (9.6K LOC)
-│   │   ├── agent-teams/        # Agent Teams (3.5K LOC)
+│   │   ├── agent-teams/        # Workflow Studio (3.5K LOC)
 │   │   └── api-management/     # API Key Management
 │   ├── components/             # Shared UI (shadcn/ui)
 │   ├── hooks/                  # Custom React hooks
@@ -210,7 +210,7 @@ dashboard/
 | Language | **TypeScript 5.x** |
 | Styling | **Tailwind CSS v4** |
 | UI | **shadcn/ui** |
-| Graphs | **React Flow** (Skill Tree, SAGE Canvas, Agent Teams) |
+| Graphs | **React Flow** (Skill Tree, SAGE Canvas, Workflow Studio) |
 | Charts | **Recharts** (Token analytics) |
 | Data | Local filesystem (`~/.claude/`, `~/.codex/`) |
 | i18n | **next-intl** (EN / 中文) |
@@ -231,11 +231,11 @@ dashboard/
 | Version | Date | Highlights |
 |---------|------|------------|
 | **v4.5.0** | 2026-03-18 | Rebranded to Pantheon, SAGE research pipeline, code quality improvements |
-| **v4.4.0** | 2026-03-18 | Skill Tree (smart creator + auto-detect + config), SAGE report, Agent Teams refactor, Chat perf |
+| **v4.4.0** | 2026-03-18 | Skill Tree (smart creator + auto-detect + config), SAGE report, Workflow Studio refactor, Chat perf |
 | **v4.3.0** | 2026-03-17 | Skill Tree dual view (list + graph), 49 skills, 8 categories |
-| **v4.1.0** | 2026-03-17 | SAGE results, checkpoints, notifications, Agent Teams executor |
-| **v4.0.0** | 2026-03-17 | Agent Teams canvas, SAGE engine, workspace system |
-| **v3.1.0** | 2026-03-16 | Agent Teams plugin, SAGE Research plugin, Turbopack |
+| **v4.1.0** | 2026-03-17 | SAGE results, checkpoints, notifications, Workflow Studio executor |
+| **v4.0.0** | 2026-03-17 | Workflow Studio canvas, SAGE engine, workspace system |
+| **v3.1.0** | 2026-03-16 | Workflow Studio plugin, SAGE Research plugin, Turbopack |
 | **v3.0.0** | 2026-03-16 | API Management, performance optimization, full i18n |
 | **v2.1.0** | 2026-02-24 | Settings refactor, Queue, Telegram/Feishu, testing |
 | **v2.0.0** | 2026-02-23 | Chat streaming, Codex integration, provider system |
@@ -260,7 +260,7 @@ dashboard/
 - [ ] Skill Tree: sub-skill expansion (drill into skill internals)
 - [ ] Skill Tree: disable actually removes skill/MCP from system
 - [ ] SAGE: node right-click menu, smart parameter inference
-- [ ] Agent Teams: undo/redo in canvas, team export/import
+- [ ] Workflow Studio: undo/redo in canvas, team export/import
 
 ### v5.0 — Intelligence Layer
 - [ ] Daily intelligence briefing (GitHub Trending + HF Papers + RSS + AI summary)

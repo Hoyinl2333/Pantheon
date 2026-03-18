@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useBackoffPoll } from "../lib/use-backoff-poll";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -108,6 +109,8 @@ function LogViewer({ logFile, isZh }: { logFile: string; isZh?: boolean }) {
   const [lineCount, setLineCount] = useState(0);
   const logEndRef = useRef<HTMLDivElement>(null);
 
+  const prevLineCountRef = useRef(0);
+
   const fetchLog = useCallback(async () => {
     try {
       const res = await fetch(`/api/plugins/aris-research/sessions/log?path=${encodeURIComponent(logFile)}&tail=500`);
@@ -115,17 +118,28 @@ function LogViewer({ logFile, isZh }: { logFile: string; isZh?: boolean }) {
       setContent(data.content || "(empty)");
       setLineCount(data.lines ?? 0);
       if (data.completed) setAutoRefresh(false);
+      return data.lines ?? 0;
     } catch {
       setContent("Failed to load log");
+      return -1;
     }
   }, [logFile]);
 
-  useEffect(() => {
-    fetchLog();
-    if (!autoRefresh) return;
-    const interval = setInterval(fetchLog, 2000);
-    return () => clearInterval(interval);
-  }, [fetchLog, autoRefresh]);
+  // Initial fetch
+  useEffect(() => { fetchLog(); }, [fetchLog]);
+
+  const { resetBackoff: resetLogBackoff } = useBackoffPoll(async () => {
+    const newLines = await fetchLog();
+    // Reset backoff when new log lines arrive (fresh data)
+    if (newLines > 0 && newLines !== prevLineCountRef.current) {
+      prevLineCountRef.current = newLines;
+      resetLogBackoff();
+    }
+  }, {
+    enabled: autoRefresh,
+    initialMs: 1000,
+    maxMs: 30000,
+  });
 
   // Auto-scroll
   useEffect(() => {
@@ -290,13 +304,25 @@ export function SessionsButton({ isZh }: SessionsButtonProps) {
     } catch { /* ignore */ }
   }, []);
 
+  // Initial fetch when dialog opens
+  useEffect(() => { if (open) fetchSessions(); }, [open, fetchSessions]);
+
+  const prevSessionCountRef = useRef(0);
+  const { resetBackoff: resetSessionBackoff } = useBackoffPoll(async () => {
+    await fetchSessions();
+  }, {
+    enabled: open,
+    initialMs: 2000,
+    maxMs: 30000,
+  });
+
+  // Reset backoff when session count changes (fresh data)
   useEffect(() => {
-    if (open) {
-      fetchSessions();
-      const interval = setInterval(fetchSessions, 5000);
-      return () => clearInterval(interval);
+    if (sessions.length !== prevSessionCountRef.current) {
+      prevSessionCountRef.current = sessions.length;
+      resetSessionBackoff();
     }
-  }, [open, fetchSessions]);
+  }, [sessions.length, resetSessionBackoff]);
 
   const handleDelete = async (id: string) => {
     await fetch(`/api/plugins/aris-research/sessions?id=${id}`, { method: "DELETE" });

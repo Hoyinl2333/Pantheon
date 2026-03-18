@@ -9,7 +9,7 @@
     "queue": "队列",
     "instructions": "指令文件",
     "settings": "设置",
-    "agentTeams": "Agent Teams"
+    "agentTeams": "工作流工作室"
   },
   "settings": {
     "title": "设置",
@@ -818,8 +818,8 @@
     }
   },
   "agentTeams": {
-    "title": "Agent Teams",
-    "description": "创建多 Agent 团队，每个成员可使用不同的模型和服务商。",
+    "title": "工作流工作室",
+    "description": "创建多 Agent 工作流，每个成员可使用不同的模型和服务商。",
     "newTeam": "新建团队",
     "myTeams": "我的团队",
     "presets": "预设模板",
@@ -829,7 +829,7 @@
     "sequential": "顺序执行",
     "parallel": "并行执行",
     "hierarchical": "层级执行",
-    "noTeams": "暂无 Agent 团队",
+    "noTeams": "暂无工作流",
     "noTeamsDesc": "创建自定义团队，每个成员可使用不同的 AI 模型。可从预设模板开始，也可自行构建。",
     "createTeam": "创建团队",
     "browsePresets": "浏览预设",
@@ -1132,11 +1132,30 @@
       "strategy": "策略详情",
       "enable": "启用",
       "disable": "禁用"
+    },
+    "configSettings": {
+      "title": "简报设置",
+      "dataSources": "数据源",
+      "githubSettings": "GitHub 设置",
+      "languageFilter": "语言筛选",
+      "timeRange": "时间范围",
+      "arxivSettings": "arXiv 设置",
+      "searchCategories": "搜索分类",
+      "rssFeeds": "RSS 订阅",
+      "noFeeds": "还没有添加订阅源。",
+      "feedName": "名称",
+      "feedUrl": "订阅链接",
+      "display": "显示",
+      "maxItems": "每个来源最大条目数",
+      "autoRefresh": "自动刷新间隔",
+      "save": "保存设置",
+      "saving": "保存中...",
+      "saved": "已保存"
     }
   },
   "plugins": {
     "apiKeys": "API 密钥管理",
-    "agentTeams": "Agent 团队",
+    "agentTeams": "工作流工作室",
     "sage": "SAGE 研究",
     "skillTree": "技能树",
     "dailyBriefing": "每日情报"

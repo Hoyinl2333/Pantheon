@@ -9,7 +9,7 @@
     "queue": "Queue",
     "instructions": "Instructions",
     "settings": "Settings",
-    "agentTeams": "Agent Teams"
+    "agentTeams": "Workflow Studio"
   },
   "settings": {
     "title": "Settings",
@@ -828,7 +828,7 @@
     }
   },
   "agentTeams": {
-    "title": "Agent Teams",
+    "title": "Workflow Studio",
     "description": "Create multi-agent teams with different models and providers for each member.",
     "newTeam": "New Team",
     "myTeams": "My Teams",
@@ -839,7 +839,7 @@
     "sequential": "Sequential",
     "parallel": "Parallel",
     "hierarchical": "Hierarchical",
-    "noTeams": "No Agent Teams Yet",
+    "noTeams": "No Workflows Yet",
     "noTeamsDesc": "Create custom agent teams where each member uses a different AI model. Start from a preset template or build your own.",
     "createTeam": "Create Team",
     "browsePresets": "Browse Presets",
@@ -1142,11 +1142,30 @@
       "strategy": "Strategy",
       "enable": "Enable",
       "disable": "Disable"
+    },
+    "configSettings": {
+      "title": "Briefing Settings",
+      "dataSources": "Data Sources",
+      "githubSettings": "GitHub Settings",
+      "languageFilter": "Language Filter",
+      "timeRange": "Time Range",
+      "arxivSettings": "arXiv Settings",
+      "searchCategories": "Search Categories",
+      "rssFeeds": "RSS Feeds",
+      "noFeeds": "No feeds added yet.",
+      "feedName": "Feed name",
+      "feedUrl": "Feed URL",
+      "display": "Display",
+      "maxItems": "Max items per source",
+      "autoRefresh": "Auto-refresh interval",
+      "save": "Save Settings",
+      "saving": "Saving...",
+      "saved": "Saved"
     }
   },
   "plugins": {
     "apiKeys": "API Keys",
-    "agentTeams": "Agent Teams",
+    "agentTeams": "Workflow Studio",
     "sage": "SAGE",
     "skillTree": "Skill Tree",
     "dailyBriefing": "Daily Briefing"

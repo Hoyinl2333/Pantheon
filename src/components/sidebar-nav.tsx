@@ -210,7 +210,7 @@ export function SidebarNav() {
   // Plugin label i18n map
   const PLUGIN_LABEL_MAP: Record<string, { en: string; zh: string }> = {
     "api-management": { en: "API Keys", zh: "API 密钥" },
-    "agent-teams": { en: "Agent Teams", zh: "Agent 团队" },
+    "agent-teams": { en: "Workflow Studio", zh: "工作流工作室" },
     "aris-research": { en: "SAGE", zh: "SAGE 研究" },
     "skill-tree": { en: "Skill Tree", zh: "技能树" },
     "daily-briefing": { en: "Daily Briefing", zh: "每日情报" },

@@ -1,5 +1,5 @@
 /**
- * Agent Teams Executor
+ * Workflow Studio Executor
  *
  * Drives multi-agent collaboration by executing each team member sequentially
  * or in parallel via the Chat API. Each agent receives:

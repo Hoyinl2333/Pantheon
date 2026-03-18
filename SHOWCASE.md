@@ -61,7 +61,7 @@ npm run dev
 - **Execute:** Click Run → watch execution dashboard with live logs
 - **Report:** After completion, see auto-generated report with timeline
 
-### 6. Agent Teams (`/plugins/agent-teams`)
+### 6. Workflow Studio (`/plugins/agent-teams`)
 **What to show:** Multi-agent team orchestration.
 - Browse 5 preset templates (e.g., "Pair Programming", "TDD Squad")
 - Click a preset → see team card with members
@@ -116,7 +116,7 @@ npm run dev
 1. Chat page — send a message, show streaming (30s)
 2. Skill Tree — scan all, smart add a skill (45s)
 3. ARIS — pick a template, show canvas, start execution (45s)
-4. Agent Teams — show preset, open canvas, drag members (30s)
+4. Workflow Studio — show preset, open canvas, drag members (30s)
 5. Tokens — show usage chart (15s)
 
 **Outro (15s)**
@@ -153,7 +153,7 @@ Your GitHub README should follow this structure:
 - **Chat** — GPT-style Claude Code interaction with streaming
 - **Skill Tree** — Game-style capability visualization with AI-powered skill creation
 - **ARIS Research** — Autonomous research pipeline (idea → paper)
-- **Agent Teams** — Multi-agent visual orchestration
+- **Workflow Studio** — Multi-agent visual orchestration
 - **Toolbox** — MCP servers, skills, hooks, agents, rules management
 - **i18n** — English + Chinese
 
@@ -179,7 +179,7 @@ Open http://localhost:3000
 |----------|------|------------|
 | ![](docs/screenshots/overview.png) | ![](docs/screenshots/chat.png) | ![](docs/screenshots/skill-tree.png) |
 
-| ARIS Research | Agent Teams | Tokens |
+| ARIS Research | Workflow Studio | Tokens |
 |---------------|-------------|--------|
 | ![](docs/screenshots/aris.png) | ![](docs/screenshots/teams.png) | ![](docs/screenshots/tokens.png) |
 
@@ -188,7 +188,7 @@ Open http://localhost:3000
 - **Framework:** Next.js 16 + TypeScript + Tailwind v4
 - **UI:** shadcn/ui + Recharts + React Flow
 - **Data:** Reads directly from `~/.claude/` JSON/JSONL files
-- **Plugins:** Modular plugin system (API Management, Agent Teams, ARIS, Skill Tree)
+- **Plugins:** Modular plugin system (API Management, Workflow Studio, ARIS, Skill Tree)
 
 ## License
 
@@ -212,7 +212,7 @@ MIT
 - [ ] Skill Tree graph view with hex nodes
 - [ ] ARIS custom pipeline canvas with nodes connected
 - [ ] ARIS execution dashboard during/after run
-- [ ] Agent Teams canvas with members connected
+- [ ] Workflow Studio canvas with members connected
 - [ ] Tokens chart with usage data
 - [ ] Settings page
 - [ ] Mobile view (narrow browser)
@@ -233,7 +233,7 @@ MIT
 - [ ] Skill Tree: Smart Add → describe skill → confirm creation
 - [ ] Skill Tree: Custom skill CRUD (add → edit → delete)
 - [ ] ARIS: Select template → see canvas → configure node → run
-- [ ] Agent Teams: Create team from preset → open canvas → execute
+- [ ] Workflow Studio: Create team from preset → open canvas → execute
 - [ ] Sessions: Browse, search, star, export
 - [ ] Tokens: Chart renders, CSV export works
 - [ ] Toolbox: Browse MCP marketplace, create a skill via AI
