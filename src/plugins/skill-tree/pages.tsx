@@ -302,7 +302,7 @@ function DetailPanel({
   isCustom: boolean;
   onEdit: () => void;
   onDelete: () => void;
-  t: (key: string) => string;
+  t: (key: string, params?: Record<string, string | number>) => string;
   statusConfig: ReturnType<typeof makeStatusConfig>;
 }) {
   const cat = CATEGORIES.find((c) => c.id === skill.category);
@@ -311,6 +311,13 @@ function DetailPanel({
     .map((id) => allSkills.find((s) => s.id === id))
     .filter(Boolean) as SkillTreeNode[];
   const unlocks = allSkills.filter((s) => s.dependencies.includes(skill.id));
+
+  // ST-3: Check if dependencies are met
+  const missingDeps = deps.filter((d) => {
+    const depStatus = statusMap.get(d.id) ?? d.defaultStatus;
+    return depStatus !== "active";
+  });
+  const depsNotMet = missingDeps.length > 0;
 
   const canActivate =
     skill.defaultStatus === "active" || skill.defaultStatus === "configurable";
@@ -423,6 +430,18 @@ function DetailPanel({
         <p className="text-xs text-muted-foreground leading-relaxed">
           {isZh ? skill.descriptionZh : skill.description}
         </p>
+
+        {/* ST-3: Dependency warning */}
+        {depsNotMet && status !== "active" && (
+          <div className="flex items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 p-2.5">
+            <AlertTriangle className="h-3.5 w-3.5 text-amber-400 shrink-0 mt-0.5" />
+            <div className="text-[10px] text-amber-400 leading-relaxed">
+              {isZh
+                ? `依赖未满足：需要先激活 ${missingDeps.map((d) => d.nameZh).join(", ")}`
+                : `Dependencies not met: ${missingDeps.map((d) => d.name).join(", ")} need to be activated first`}
+            </div>
+          </div>
+        )}
 
         {/* Status actions */}
         <div className="space-y-1.5">
@@ -775,10 +794,36 @@ export function SkillTreePage() {
 
   const handleStatusChange = useCallback(
     async (skillId: string, status: SkillStatus) => {
+      // ST-3: Dependency enforcement — block activation if deps not active
+      if (status === "active") {
+        const skill = allSkills.find((s) => s.id === skillId);
+        if (skill && skill.dependencies.length > 0) {
+          const missingDeps = skill.dependencies
+            .map((depId) => {
+              const depSkill = allSkills.find((s) => s.id === depId);
+              if (!depSkill) return null;
+              const depStatus = statusMap.get(depId) ?? depSkill.defaultStatus;
+              return depStatus !== "active" ? depSkill : null;
+            })
+            .filter(Boolean) as SkillTreeNode[];
+          if (missingDeps.length > 0) {
+            const names = missingDeps
+              .map((d) => (isZh ? d.nameZh : d.name))
+              .join(", ");
+            toast(
+              isZh
+                ? `依赖未满足：需要先激活 ${names}`
+                : `Dependencies not met: ${names} need to be activated first`,
+              "error"
+            );
+            return;
+          }
+        }
+      }
       const newState = await setSkillStatus(skillId, status);
       setTreeState(newState);
     },
-    []
+    [allSkills, statusMap, isZh, toast, t]
   );
 
   const toggleCat = useCallback((catId: string) => {

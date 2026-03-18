@@ -30,13 +30,17 @@ import { SkillDetailPanel } from "./skill-detail-panel";
 const NODE_WIDTH = 120;
 const NODE_HEIGHT = 130;
 
-function autoLayout(skills: SkillTreeNode[], isZh: boolean, statusMap: Map<string, SkillStatus>): { nodes: Node[]; edges: Edge[] } {
+function autoLayout(skills: SkillTreeNode[], isZh: boolean, statusMap: Map<string, SkillStatus>): { nodes: Node[]; edges: Edge[]; tierBands: { tier: number; y: number }[] } {
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
-  g.setGraph({ rankdir: "TB", ranksep: 100, nodesep: 40, marginx: 40, marginy: 40 });
+  g.setGraph({ rankdir: "TB", ranksep: 100, nodesep: 40, marginx: 80, marginy: 40 });
 
   for (const skill of skills) {
-    g.setNode(skill.id, { width: NODE_WIDTH, height: NODE_HEIGHT });
+    // ST-4: Tier-based node sizing — higher tier nodes are slightly larger
+    const tierScale = skill.tier <= 1 ? 1.15 : skill.tier <= 2 ? 1.05 : 1.0;
+    const w = Math.round(NODE_WIDTH * tierScale);
+    const h = Math.round(NODE_HEIGHT * tierScale);
+    g.setNode(skill.id, { width: w, height: h });
   }
 
   const edges: Edge[] = [];
@@ -65,13 +69,41 @@ function autoLayout(skills: SkillTreeNode[], isZh: boolean, statusMap: Map<strin
 
   dagre.layout(g);
 
+  // ST-4: Adjust Y positions so nodes are grouped by tier level
+  // Compute tier band positions: each tier gets a fixed vertical band
+  const TIER_GAP = 180; // vertical gap between tiers
+  const tiers = [...new Set(skills.map((s) => s.tier))].sort((a, b) => a - b);
+  const tierYMap = new Map<number, number>();
+  tiers.forEach((tier, index) => {
+    tierYMap.set(tier, index * TIER_GAP);
+  });
+
+  // Compute per-tier average dagre Y for centering within the tier band
+  const tierDagreYs = new Map<number, number[]>();
+  for (const skill of skills) {
+    const pos = g.node(skill.id);
+    if (!tierDagreYs.has(skill.tier)) tierDagreYs.set(skill.tier, []);
+    tierDagreYs.get(skill.tier)!.push(pos.y);
+  }
+  const tierAvgY = new Map<number, number>();
+  for (const [tier, ys] of tierDagreYs) {
+    tierAvgY.set(tier, ys.reduce((a, b) => a + b, 0) / ys.length);
+  }
+
   const nodes: Node[] = skills.map((skill) => {
     const pos = g.node(skill.id);
     const status = statusMap.get(skill.id) ?? skill.defaultStatus;
+    // Shift Y: move from dagre's avg Y for this tier to the fixed tier band Y
+    const targetY = tierYMap.get(skill.tier) ?? pos.y;
+    const avgY = tierAvgY.get(skill.tier) ?? pos.y;
+    const adjustedY = pos.y - avgY + targetY;
+    const tierScale = skill.tier <= 1 ? 1.15 : skill.tier <= 2 ? 1.05 : 1.0;
+    const w = Math.round(NODE_WIDTH * tierScale);
+    const h = Math.round(NODE_HEIGHT * tierScale);
     return {
       id: skill.id,
       type: "skill-hex",
-      position: { x: pos.x - NODE_WIDTH / 2, y: pos.y - NODE_HEIGHT / 2 },
+      position: { x: pos.x - w / 2, y: adjustedY - h / 2 },
       data: {
         skillId: skill.id,
         name: skill.name,
@@ -86,7 +118,13 @@ function autoLayout(skills: SkillTreeNode[], isZh: boolean, statusMap: Map<strin
     };
   });
 
-  return { nodes, edges };
+  // Compute tier band center positions for labels
+  const tierBands = tiers.map((tier) => ({
+    tier,
+    y: tierYMap.get(tier) ?? 0,
+  }));
+
+  return { nodes, edges, tierBands };
 }
 
 // ---------------------------------------------------------------------------
@@ -198,6 +236,7 @@ function TreeCanvasInner({ locale }: { locale: string }) {
 
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+  const [tierBands, setTierBands] = useState<{ tier: number; y: number }[]>([]);
 
   // All skills (preset + custom)
   const allSkills = useMemo(
@@ -233,9 +272,10 @@ function TreeCanvasInner({ locale }: { locale: string }) {
 
   // Rebuild layout when filters or state change
   useEffect(() => {
-    const { nodes: layoutNodes, edges: layoutEdges } = autoLayout(filteredSkills, isZh, statusMap);
+    const { nodes: layoutNodes, edges: layoutEdges, tierBands: bands } = autoLayout(filteredSkills, isZh, statusMap);
     setNodes(layoutNodes);
     setEdges(layoutEdges);
+    setTierBands(bands);
     setTimeout(() => fitView({ padding: 0.15, duration: 300 }), 100);
   }, [filteredSkills, isZh, statusMap, setNodes, setEdges, fitView]);
 
@@ -249,9 +289,27 @@ function TreeCanvasInner({ locale }: { locale: string }) {
   }, []);
 
   const handleStatusChange = useCallback(async (skillId: string, status: SkillStatus) => {
+    // ST-3: Dependency enforcement — block activation if deps not active
+    if (status === "active") {
+      const skill = allSkills.find((s) => s.id === skillId);
+      if (skill && skill.dependencies.length > 0) {
+        const missing = skill.dependencies
+          .map((depId) => {
+            const depSkill = allSkills.find((s) => s.id === depId);
+            if (!depSkill) return null;
+            const depStatus = statusMap.get(depId) ?? depSkill.defaultStatus;
+            return depStatus !== "active" ? depSkill : null;
+          })
+          .filter(Boolean) as SkillTreeNode[];
+        if (missing.length > 0) {
+          // Block — the visual warning in detail panel already shows the issue
+          return;
+        }
+      }
+    }
     const newState = await setSkillStatus(skillId, status);
     setTreeState(newState);
-  }, []);
+  }, [allSkills, statusMap]);
 
   const selectedSkill = useMemo(
     () => allSkills.find((s) => s.id === selectedSkillId) ?? null,
@@ -312,6 +370,37 @@ function TreeCanvasInner({ locale }: { locale: string }) {
               />
             </div>
           </div>
+
+          {/* ST-4: Tier level legend */}
+          {tierBands.length > 0 && (
+            <div className="absolute top-14 left-3 flex flex-col gap-1 bg-zinc-950/80 backdrop-blur-sm rounded-lg px-2.5 py-2 border border-zinc-800">
+              <div className="text-[9px] text-zinc-500 font-medium mb-0.5">
+                {isZh ? "技能层级" : "Tier Levels"}
+              </div>
+              {tierBands.map(({ tier }) => {
+                const opacity = tier <= 1 ? "text-zinc-200" : tier <= 2 ? "text-zinc-300" : tier <= 3 ? "text-zinc-400" : "text-zinc-500";
+                const barWidth = `${Math.max(100 - (tier - 1) * 18, 20)}%`;
+                return (
+                  <div key={tier} className="flex items-center gap-2">
+                    <span className={`text-[10px] font-bold w-5 ${opacity}`}>T{tier}</span>
+                    <div className="w-12 h-1 rounded-full bg-zinc-800 overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-emerald-600 to-emerald-500 transition-all"
+                        style={{ width: barWidth, opacity: 1 - (tier - 1) * 0.15 }}
+                      />
+                    </div>
+                    <span className="text-[8px] text-zinc-600">
+                      {tier === 1 ? (isZh ? "核心" : "Core") :
+                       tier === 2 ? (isZh ? "基础" : "Basic") :
+                       tier === 3 ? (isZh ? "中级" : "Mid") :
+                       tier === 4 ? (isZh ? "高级" : "Adv") :
+                       isZh ? "专家" : "Expert"}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Detail panel */}
@@ -320,6 +409,7 @@ function TreeCanvasInner({ locale }: { locale: string }) {
             skill={selectedSkill}
             effectiveStatus={statusMap.get(selectedSkill.id) ?? selectedSkill.defaultStatus}
             allSkills={allSkills}
+            statusMap={statusMap}
             onStatusChange={handleStatusChange}
             onClose={() => setSelectedSkillId(null)}
             isZh={isZh}

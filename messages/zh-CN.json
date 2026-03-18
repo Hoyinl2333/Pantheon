@@ -1041,6 +1041,9 @@
       "created": "智能技能创建成功！",
       "createFailed": "创建技能失败",
       "smartAdd": "智能添加"
-    }
+    },
+    "depsNotMet": "依赖未满足：需要先激活 {names}",
+    "depsNotMetShort": "依赖未满足",
+    "tierLabel": "第 {tier} 层"
   }
 }

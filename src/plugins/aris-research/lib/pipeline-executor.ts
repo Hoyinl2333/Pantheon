@@ -18,6 +18,7 @@ import {
   createPipelineNotifier,
 } from "@/lib/execution";
 import { saveExecutionState, type ExecutionState } from "./execution-state";
+import { computeStageStatuses, syncStageStatuses } from "./stage-skill-sync";
 
 // Re-export for backward compatibility
 export type { ExecutionEvent, ExecutionListener } from "@/lib/execution";
@@ -115,11 +116,20 @@ export class PipelineExecutor extends BaseExecutor<PipelineNode, PipelineEdge> {
     sessionId: string,
     nodeId: string
   ): Promise<void> {
-    const maxPolls = 720; // 1 hour at 5s intervals
-    for (let i = 0; i < maxPolls; i++) {
+    const INITIAL_INTERVAL_MS = 3000;
+    const MAX_INTERVAL_MS = 30_000;
+    const MAX_TOTAL_MS = 3_600_000; // 1 hour
+
+    let interval = INITIAL_INTERVAL_MS;
+    let elapsed = 0;
+    let lastLogOutput = "";
+    let lastProgressEmit = 0;
+
+    while (elapsed < MAX_TOTAL_MS) {
       if (this.aborted) return;
 
-      await sleep(5000);
+      await sleep(interval);
+      elapsed += interval;
 
       try {
         const res = await fetch("/api/plugins/aris-research/sessions");
@@ -134,12 +144,23 @@ export class PipelineExecutor extends BaseExecutor<PipelineNode, PipelineEdge> {
           throw new Error("Session ended with error");
         }
 
-        // Still running, emit progress every 30s
-        if (i % 6 === 0) {
+        // Reset interval to initial when new activity is detected
+        const currentLog = session.lastLog ?? session.output ?? "";
+        if (currentLog && currentLog !== lastLogOutput) {
+          lastLogOutput = currentLog;
+          interval = INITIAL_INTERVAL_MS;
+        } else {
+          // Exponential backoff: double interval, cap at MAX_INTERVAL_MS
+          interval = Math.min(interval * 2, MAX_INTERVAL_MS);
+        }
+
+        // Emit progress roughly every 30s
+        if (elapsed - lastProgressEmit >= 30_000) {
+          lastProgressEmit = elapsed;
           this.emit({
             type: "log",
             nodeId,
-            message: `Still running... (${Math.floor((i * 5) / 60)}min)`,
+            message: `Still running... (${Math.floor(elapsed / 60_000)}min, poll ${Math.round(interval / 1000)}s)`,
           });
         }
       } catch (err) {
@@ -169,6 +190,20 @@ export class PipelineExecutor extends BaseExecutor<PipelineNode, PipelineEdge> {
 
     try {
       await saveExecutionState(state);
+    } catch {
+      // Non-critical
+    }
+
+    // Sync stage statuses based on completed skills
+    try {
+      const completedSet = new Set(completedIds);
+      // Nodes currently running = not completed, not errored, not skipped
+      const terminalIds = new Set([...completedIds, ...errorIds, ...skippedIds]);
+      const runningSet = new Set(
+        this.nodes.filter((n) => !terminalIds.has(n.id)).map((n) => n.id)
+      );
+      const updates = computeStageStatuses(this.nodes, completedSet, runningSet);
+      await syncStageStatuses(updates);
     } catch {
       // Non-critical
     }

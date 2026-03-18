@@ -1041,6 +1041,9 @@
       "created": "Smart skills created successfully!",
       "createFailed": "Failed to create skills",
       "smartAdd": "Smart Add"
-    }
+    },
+    "depsNotMet": "Dependencies not met: {names} need to be activated first",
+    "depsNotMetShort": "Dependencies not met",
+    "tierLabel": "Tier {tier}"
   }
 }

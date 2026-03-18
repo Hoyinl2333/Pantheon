@@ -46,6 +46,7 @@ interface SkillDetailPanelProps {
   skill: SkillTreeNode;
   effectiveStatus: SkillStatus;
   allSkills: SkillTreeNode[];
+  statusMap: Map<string, SkillStatus>;
   onStatusChange: (skillId: string, status: SkillStatus) => void;
   onClose: () => void;
   onNavigate?: (route: string) => void;
@@ -88,6 +89,7 @@ export function SkillDetailPanel({
   skill,
   effectiveStatus,
   allSkills,
+  statusMap,
   onStatusChange,
   onClose,
   onNavigate,
@@ -99,6 +101,13 @@ export function SkillDetailPanel({
     .map((id) => allSkills.find((s) => s.id === id))
     .filter(Boolean) as SkillTreeNode[];
   const unlocks = allSkills.filter((s) => s.dependencies.includes(skill.id));
+
+  // ST-3: Check if dependencies are met
+  const missingDeps = deps.filter((d) => {
+    const depStatus = statusMap.get(d.id) ?? d.defaultStatus;
+    return depStatus !== "active";
+  });
+  const depsNotMet = missingDeps.length > 0;
 
   const canActivate =
     skill.defaultStatus === "active" || skill.defaultStatus === "configurable";
@@ -163,6 +172,18 @@ export function SkillDetailPanel({
         <p className="text-xs text-muted-foreground leading-relaxed">
           {isZh ? skill.descriptionZh : skill.description}
         </p>
+
+        {/* ST-3: Dependency warning */}
+        {depsNotMet && effectiveStatus !== "active" && (
+          <div className="flex items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 p-2.5">
+            <AlertTriangle className="h-3.5 w-3.5 text-amber-400 shrink-0 mt-0.5" />
+            <div className="text-[10px] text-amber-400 leading-relaxed">
+              {isZh
+                ? `依赖未满足：需要先激活 ${missingDeps.map((d) => d.nameZh).join(", ")}`
+                : `Dependencies not met: ${missingDeps.map((d) => d.name).join(", ")} need to be activated first`}
+            </div>
+          </div>
+        )}
 
         {/* Status actions — context-appropriate buttons instead of raw Select */}
         <div className="space-y-1.5">
