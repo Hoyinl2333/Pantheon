@@ -104,6 +104,10 @@ export class TeamExecutor extends BaseExecutor<AgentNode, AgentEdge> {
       ),
       logs: [],
       startedAt: new Date().toISOString(),
+      nodeOutputs: {},
+      nodeNames: Object.fromEntries(
+        team.members.map((m) => [m.id, m.name])
+      ),
     };
   }
 
@@ -161,6 +165,10 @@ export class TeamExecutor extends BaseExecutor<AgentNode, AgentEdge> {
 
     // Store result
     this.results.set(node.id, result);
+
+    // Store output in run record
+    this.runRecord.nodeOutputs = this.runRecord.nodeOutputs ?? {};
+    this.runRecord.nodeOutputs[node.id] = result.output;
 
     // Update run record
     this.runRecord.nodeStatuses[node.id] = "done";

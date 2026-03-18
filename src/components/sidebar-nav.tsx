@@ -389,15 +389,15 @@ export function SidebarNav() {
             <>
               {/* On mobile when sidebar is open, show full header even if collapsed on desktop */}
               <div className="lg:hidden flex items-center gap-2 min-w-0">
-                <span className="text-xl">⚡</span>
+                <img src="/logo.svg" alt="Pantheon" className="h-6 w-6" />
                 <span className="truncate">Pantheon</span>
               </div>
-              <span className="text-xl hidden lg:block" title="Pantheon">⚡</span>
+              <img src="/logo.svg" alt="Pantheon" className="h-6 w-6 hidden lg:block" title="Pantheon" />
             </>
           ) : (
             <>
               <div className="flex items-center gap-2 min-w-0">
-                <span className="text-xl">⚡</span>
+                <img src="/logo.svg" alt="Pantheon" className="h-6 w-6" />
                 <span className="truncate">Pantheon</span>
               </div>
               <NotificationBell />

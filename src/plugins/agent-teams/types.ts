@@ -123,4 +123,8 @@ export interface TeamRun {
   completedAt?: string;
   totalTokens?: number;
   totalCost?: number;
+  /** Maps node ID to agent output text */
+  nodeOutputs?: Record<string, string>;
+  /** Maps node ID to human-readable agent name */
+  nodeNames?: Record<string, string>;
 }

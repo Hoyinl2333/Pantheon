@@ -192,7 +192,7 @@ function RunRow({ run, isZh }: { run: TeamRun; isZh: boolean }) {
                       }`}
                     />
                     <span className="truncate font-mono text-[10px]">
-                      {nodeId.length > 20 ? nodeId.slice(0, 20) + "..." : nodeId}
+                      {run.nodeNames?.[nodeId] ?? (nodeId.length > 20 ? nodeId.slice(0, 20) + "..." : nodeId)}
                     </span>
                     <span
                       className={`ml-auto text-[10px] ${NODE_STATUS_COLORS[status]}`}
@@ -225,6 +225,25 @@ function RunRow({ run, isZh }: { run: TeamRun; isZh: boolean }) {
                     ... {run.logs.length - 20} {isZh ? "条更早的日志" : "earlier entries"}
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* Agent Outputs */}
+          {run.nodeOutputs && Object.keys(run.nodeOutputs).length > 0 && (
+            <div>
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+                {isZh ? "Agent 输出" : "Agent Outputs"}
+              </div>
+              <div className="space-y-1.5">
+                {Object.entries(run.nodeOutputs).map(([nodeId, output]) => (
+                  <AgentOutputEntry
+                    key={nodeId}
+                    nodeId={nodeId}
+                    name={run.nodeNames?.[nodeId] ?? nodeId}
+                    output={output}
+                  />
+                ))}
               </div>
             </div>
           )}
