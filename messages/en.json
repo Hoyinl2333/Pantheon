@@ -1042,6 +1042,8 @@
       "createFailed": "Failed to create skills",
       "smartAdd": "Smart Add"
     },
+    "tryIt": "Try It",
+    "usageExample": "Usage Example",
     "depsNotMet": "Dependencies not met: {names} need to be activated first",
     "depsNotMetShort": "Dependencies not met",
     "tierLabel": "Tier {tier}"

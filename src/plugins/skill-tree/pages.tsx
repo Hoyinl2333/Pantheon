@@ -32,6 +32,7 @@ import {
   ShieldCheck,
   AlertTriangle,
   Wand2,
+  Play,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useLocale } from "next-intl";
@@ -594,6 +595,58 @@ function DetailPanel({
                 $ {skill.detectCommand}
               </code>
             )}
+          </div>
+        )}
+
+        {/* Usage example / Try It */}
+        {(skill.usageExample || skill.usageExampleZh) && (
+          <div className="bg-emerald-500/5 border border-emerald-500/15 rounded-lg p-3 space-y-1.5">
+            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400">
+              <Play className="h-3 w-3" />
+              {t("tryIt")}
+            </div>
+            <div className="text-[10px] text-muted-foreground leading-relaxed">
+              {(() => {
+                const text = (isZh ? skill.usageExampleZh : skill.usageExample) ?? skill.usageExample ?? "";
+                // Detect terminal commands (lines starting with known commands or containing common CLI patterns)
+                const parts = text.split(/(`.+?`|(?:curl|docker|ssh|codex|npm|npx|claude|git)\s[^\s].*?)(?:\s—|$)/g);
+                if (parts.length === 1) {
+                  // Check for internal routes
+                  const routeMatch = text.match(/\/(settings|chat|tokens|sessions|queue|toolbox|plugins\/[a-z-]+)/);
+                  if (routeMatch) {
+                    const route = routeMatch[0];
+                    const idx = text.indexOf(route);
+                    return (
+                      <>
+                        {text.slice(0, idx)}
+                        <button
+                          className="text-emerald-400 hover:text-emerald-300 underline underline-offset-2"
+                          onClick={() => onNavigate(route)}
+                        >
+                          {route}
+                        </button>
+                        {text.slice(idx + route.length)}
+                      </>
+                    );
+                  }
+                  return text;
+                }
+                return text;
+              })()}
+            </div>
+            {(() => {
+              const text = (isZh ? skill.usageExampleZh : skill.usageExample) ?? skill.usageExample ?? "";
+              // Extract command-like segments for code display
+              const cmdMatch = text.match(/(?:curl|docker|ssh|codex|npm|npx|claude|git)\s+[^\u4e00-\u9fff]+?(?=\s*[(\u2014]|$)/);
+              if (cmdMatch) {
+                return (
+                  <code className="block text-[9px] font-mono bg-zinc-900 text-zinc-300 rounded px-2 py-1 mt-1 break-all">
+                    $ {cmdMatch[0].trim()}
+                  </code>
+                );
+              }
+              return null;
+            })()}
           </div>
         )}
 

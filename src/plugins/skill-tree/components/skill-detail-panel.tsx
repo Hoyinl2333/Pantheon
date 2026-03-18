@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -13,6 +14,7 @@ import {
   ShieldCheck,
   Loader2,
   AlertTriangle,
+  Play,
 } from "lucide-react";
 import type { SkillTreeNode, SkillStatus, SkillCategory } from "../types";
 import { CATEGORIES } from "../skill-tree-data";
@@ -98,6 +100,7 @@ export function SkillDetailPanel({
   onNavigate,
   isZh,
 }: SkillDetailPanelProps) {
+  const router = useRouter();
   const cat = getCatMeta(skill.category);
   const impl = IMPL_LABELS[skill.implType] ?? IMPL_LABELS.planned;
   const deps = skill.dependencies
@@ -336,6 +339,52 @@ export function SkillDetailPanel({
           </div>
         )}
 
+        {/* Usage example / Try It */}
+        {(skill.usageExample || skill.usageExampleZh) && (
+          <div className="bg-emerald-500/5 border border-emerald-500/15 rounded-lg p-3 space-y-1.5">
+            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400">
+              <Play className="h-3 w-3" />
+              {isZh ? "试试看" : "Try It"}
+            </div>
+            <div className="text-[10px] text-muted-foreground leading-relaxed">
+              {(() => {
+                const text = (isZh ? skill.usageExampleZh : skill.usageExample) ?? skill.usageExample ?? "";
+                // Check for internal routes and make them clickable
+                const routeMatch = text.match(/\/(settings|chat|tokens|sessions|queue|toolbox|plugins\/[a-z-]+)/);
+                if (routeMatch) {
+                  const route = routeMatch[0];
+                  const idx = text.indexOf(route);
+                  return (
+                    <>
+                      {text.slice(0, idx)}
+                      <button
+                        className="text-emerald-400 hover:text-emerald-300 underline underline-offset-2"
+                        onClick={() => onNavigate ? onNavigate(route) : router.push(route)}
+                      >
+                        {route}
+                      </button>
+                      {text.slice(idx + route.length)}
+                    </>
+                  );
+                }
+                return text;
+              })()}
+            </div>
+            {(() => {
+              const text = (isZh ? skill.usageExampleZh : skill.usageExample) ?? skill.usageExample ?? "";
+              const cmdMatch = text.match(/(?:curl|docker|ssh|codex|npm|npx|claude|git)\s+[^\u4e00-\u9fff]+?(?=\s*[(\u2014]|$)/);
+              if (cmdMatch) {
+                return (
+                  <code className="block text-[9px] font-mono bg-zinc-900 text-zinc-300 rounded px-2 py-1 mt-1 break-all">
+                    $ {cmdMatch[0].trim()}
+                  </code>
+                );
+              }
+              return null;
+            })()}
+          </div>
+        )}
+
         {/* Implementation detail */}
         {skill.implDetail && (
           <div className="space-y-1">
@@ -391,7 +440,7 @@ export function SkillDetailPanel({
             size="sm"
             variant="outline"
             className="w-full h-7 text-xs gap-1.5"
-            onClick={() => onNavigate?.(skill.pageRoute!)}
+            onClick={() => onNavigate ? onNavigate(skill.pageRoute!) : router.push(skill.pageRoute!)}
           >
             <ExternalLink className="h-3 w-3" />
             {isZh ? "打开页面" : "Open Page"}

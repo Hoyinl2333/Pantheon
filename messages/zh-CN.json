@@ -1042,6 +1042,8 @@
       "createFailed": "创建技能失败",
       "smartAdd": "智能添加"
     },
+    "tryIt": "试试看",
+    "usageExample": "使用示例",
     "depsNotMet": "依赖未满足：需要先激活 {names}",
     "depsNotMetShort": "依赖未满足",
     "tierLabel": "第 {tier} 层"

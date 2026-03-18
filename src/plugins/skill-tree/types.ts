@@ -68,6 +68,10 @@ export interface SkillTreeNode {
   pageRoute?: string;
   /** Configurable parameters for this skill (shown in detail panel) */
   configFields?: SkillConfigField[];
+  /** Example command or usage instructions (shown as "Try It" section) */
+  usageExample?: string;
+  /** Chinese version of usage example */
+  usageExampleZh?: string;
 }
 
 /** A configurable parameter field for a skill */

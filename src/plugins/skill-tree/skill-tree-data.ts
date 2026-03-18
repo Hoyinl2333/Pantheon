@@ -128,6 +128,8 @@ export const SKILL_TREE_NODES: SkillTreeNode[] = [
       "Verify: codex --version",
     ],
     detectHint: "Run 'codex --version' in terminal",
+    usageExample: "In Chat page, switch provider to Codex. Or use terminal: codex 'explain this code'",
+    usageExampleZh: "在聊天页面切换提供者为 Codex，或在终端使用：codex 'explain this code'",
   },
   {
     id: "git",
@@ -186,6 +188,8 @@ export const SKILL_TREE_NODES: SkillTreeNode[] = [
     tier: 2,
     tags: ["core", "ui"],
     pageRoute: "/",
+    usageExample: "Open http://localhost:3000 in your browser to access the dashboard",
+    usageExampleZh: "在浏览器中打开 http://localhost:3000 访问仪表盘",
   },
   {
     id: "mcp-servers",
@@ -202,6 +206,8 @@ export const SKILL_TREE_NODES: SkillTreeNode[] = [
     tier: 2,
     tags: ["core", "mcp"],
     pageRoute: "/toolbox",
+    usageExample: "Go to Toolbox > MCP tab to view and manage MCP servers. Add new servers with the '+' button.",
+    usageExampleZh: "前往工具箱 > MCP 标签页查看和管理 MCP 服务器，点击 '+' 按钮添加新服务器。",
   },
 
   // ==================== CODING ====================
@@ -326,6 +332,8 @@ export const SKILL_TREE_NODES: SkillTreeNode[] = [
     tier: 2,
     tags: ["ml", "autonomous"],
     pageRoute: "/plugins/aris-research",
+    usageExample: "Open ARIS Research page, pick a template or create a custom pipeline, then click Execute.",
+    usageExampleZh: "打开 ARIS 研究页面，选择模板或创建自定义流水线，然后点击执行。",
   },
   {
     id: "lit-survey",
@@ -414,6 +422,8 @@ export const SKILL_TREE_NODES: SkillTreeNode[] = [
         defaultValue: "base",
       },
     ],
+    usageExample: "ssh <host> 'nvidia-smi' — check GPU status, then use /run-experiment in Claude Code to deploy.",
+    usageExampleZh: "ssh <host> 'nvidia-smi' — 检查 GPU 状态，然后在 Claude Code 中使用 /run-experiment 部署实验。",
   },
   {
     id: "paper-writing",
@@ -477,6 +487,8 @@ export const SKILL_TREE_NODES: SkillTreeNode[] = [
     tier: 2,
     tags: ["keys", "billing"],
     pageRoute: "/plugins/api-management",
+    usageExample: "Open API Keys page, click '+' to add a key for any provider (OpenAI, Anthropic, DeepSeek, etc.)",
+    usageExampleZh: "打开 API 密钥页面，点击 '+' 添加任意提供者的密钥（OpenAI、Anthropic、DeepSeek 等）",
   },
   {
     id: "agent-teams",
@@ -493,6 +505,8 @@ export const SKILL_TREE_NODES: SkillTreeNode[] = [
     tier: 3,
     tags: ["agents", "orchestration"],
     pageRoute: "/plugins/agent-teams",
+    usageExample: "Open Agent Teams page, create a team from preset or build your own, then run it from the visual canvas.",
+    usageExampleZh: "打开 Agent Teams 页面，从预设创建团队或自行构建，然后在可视化画布中运行。",
   },
   {
     id: "task-queue",
@@ -508,6 +522,8 @@ export const SKILL_TREE_NODES: SkillTreeNode[] = [
     tier: 2,
     tags: ["queue", "background"],
     pageRoute: "/queue",
+    usageExample: "Use /bg in Telegram or the Queue button in Chat to add background tasks.",
+    usageExampleZh: "在 Telegram 中使用 /bg 或在聊天页面点击队列按钮来添加后台任务。",
   },
   {
     id: "session-manager",
@@ -523,6 +539,8 @@ export const SKILL_TREE_NODES: SkillTreeNode[] = [
     tier: 2,
     tags: ["sessions"],
     pageRoute: "/sessions",
+    usageExample: "Open Sessions page to browse, search and review past Claude Code sessions.",
+    usageExampleZh: "打开会话页面浏览、搜索和查看历史 Claude Code 会话。",
   },
   {
     id: "token-tracking",
@@ -538,6 +556,8 @@ export const SKILL_TREE_NODES: SkillTreeNode[] = [
     tier: 2,
     tags: ["tokens", "cost"],
     pageRoute: "/tokens",
+    usageExample: "Open Tokens page to view daily cost trends, per-model breakdown, and export CSV reports.",
+    usageExampleZh: "打开 Token 页面查看每日费用趋势、按模型分类统计，并导出 CSV 报告。",
   },
   {
     id: "toolbox",
@@ -553,6 +573,8 @@ export const SKILL_TREE_NODES: SkillTreeNode[] = [
     tier: 2,
     tags: ["config"],
     pageRoute: "/toolbox",
+    usageExample: "Open Toolbox to manage MCP servers, skills, hooks, agents, and rules — all in one place.",
+    usageExampleZh: "打开工具箱管理 MCP 服务器、技能、Hooks、Agent 和规则 — 一站式配置。",
   },
 
   // ==================== CREATIVE ====================
@@ -641,6 +663,24 @@ export const SKILL_TREE_NODES: SkillTreeNode[] = [
     detectCommand: "node -e \"fetch('http://localhost:3000/api/bot/telegram').then(r=>r.json()).then(d=>process.exit(d.configured?0:1)).catch(()=>process.exit(1))\"",
     detectHint: "Settings > Bots > Telegram shows 'Connected'",
     pageRoute: "/settings",
+    configFields: [
+      {
+        key: "botToken",
+        label: "Bot Token",
+        labelZh: "Bot Token",
+        type: "text",
+        placeholder: "123456:ABC-DEF...",
+      },
+      {
+        key: "chatId",
+        label: "Allowed Chat IDs",
+        labelZh: "允许的 Chat ID",
+        type: "text",
+        placeholder: "123456789 (comma-separated)",
+      },
+    ],
+    usageExample: "In Claude Code, use /feishu-notify or configure in Settings > Bots > Telegram. Send a test: curl -X POST http://localhost:3000/api/bot/telegram -d '{\"message\":\"Hello from SCC!\"}'",
+    usageExampleZh: "在 Claude Code 中使用 /feishu-notify 或在设置 > 机器人 > Telegram 中配置。发送测试：curl -X POST http://localhost:3000/api/bot/telegram -d '{\"message\":\"Hello from SCC!\"}'",
   },
   {
     id: "feishu-bot",
@@ -667,6 +707,24 @@ export const SKILL_TREE_NODES: SkillTreeNode[] = [
     detectCommand: "node -e \"fetch('http://localhost:3000/api/bot/feishu').then(r=>r.json()).then(d=>process.exit(d.configured?0:1)).catch(()=>process.exit(1))\"",
     detectHint: "Settings > Bots > Feishu shows 'Connected'",
     pageRoute: "/settings",
+    configFields: [
+      {
+        key: "appId",
+        label: "App ID",
+        labelZh: "App ID",
+        type: "text",
+        placeholder: "cli_xxxxxxxxxxxx",
+      },
+      {
+        key: "appSecret",
+        label: "App Secret",
+        labelZh: "App Secret",
+        type: "text",
+        placeholder: "xxxxxxxxxxxxxxxx",
+      },
+    ],
+    usageExample: "Go to Settings > Bots > Feishu, enter credentials. Test: send a notification via ARIS pipeline completion.",
+    usageExampleZh: "前往设置 > 机器人 > 飞书，输入凭据。测试：通过 ARIS 流水线完成时发送通知。",
   },
   {
     id: "mobile-access",
@@ -727,6 +785,8 @@ export const SKILL_TREE_NODES: SkillTreeNode[] = [
     tier: 3,
     tags: ["meta", "generator"],
     pageRoute: "/toolbox",
+    usageExample: "Go to Toolbox > Skills tab, click 'AI Create' to generate a new skill from a description.",
+    usageExampleZh: "前往工具箱 > 技能标签页，点击「AI 创建」从描述生成新技能。",
   },
   {
     id: "mcp-generator",
@@ -833,6 +893,8 @@ export const SKILL_TREE_NODES: SkillTreeNode[] = [
       "Windows: Start Docker Desktop | Linux: sudo systemctl start docker",
       "Verify: docker --version",
     ],
+    usageExample: "docker run hello-world (verify installation works)",
+    usageExampleZh: "docker run hello-world（验证安装是否成功）",
   },
   {
     id: "ssh-remote",
@@ -854,6 +916,8 @@ export const SKILL_TREE_NODES: SkillTreeNode[] = [
       "Test connection: ssh <host> \"echo ok\"",
     ],
     detectHint: "Windows: Check C:\\Users\\<you>\\.ssh\\config | Linux: Check ~/.ssh/config",
+    usageExample: "ssh <host> 'nvidia-smi' — check GPU status on remote server",
+    usageExampleZh: "ssh <host> 'nvidia-smi' — 检查远程服务器 GPU 状态",
   },
   {
     id: "database",
