@@ -182,8 +182,8 @@ function getSubCategoriesForNeed(need: InfoNeed, items: BriefingItem[]): string[
 async function classifySubCategories(
   items: BriefingItem[],
   need: InfoNeed,
-): Promise<void> {
-  if (items.length === 0) return;
+): Promise<number> {
+  if (items.length === 0) return 0;
 
   const categories = getSubCategoriesForNeed(need, items);
   // If only "General", skip AI call
@@ -191,7 +191,7 @@ async function classifySubCategories(
     for (const item of items) {
       item.subCategory = "General";
     }
-    return;
+    return 0;
   }
 
   // Limit to top 50 items
@@ -217,8 +217,9 @@ Return ONLY the JSON array, no markdown, no explanation.`;
     for (const item of items) {
       item.subCategory = "Other";
     }
-    return;
+    return estimateTokens(prompt);
   }
+  const classificationTokens = estimateTokens(prompt) + estimateTokens(result);
 
   // Parse response - try to extract JSON array
   let classifications: { id: string; subCategory: string }[] = [];
@@ -252,6 +253,7 @@ Return ONLY the JSON array, no markdown, no explanation.`;
       item.subCategory = "Other";
     }
   }
+  return classificationTokens;
 }
 
 /** Overall request timeout (90 seconds) to prevent hanging */
@@ -364,22 +366,29 @@ export async function POST(req: NextRequest) {
       needLookup.set(need.id, need);
     }
 
+    let classificationTokens = 0;
     const classifyPromises = [...classifyItemsByNeed.entries()].map(
       async ([nid, items]) => {
         const need = needLookup.get(nid);
-        if (!need) return;
+        if (!need) return 0;
         try {
-          await classifySubCategories(items, need);
+          return await classifySubCategories(items, need);
         } catch (err) {
           console.error(`[Briefing] Sub-category classification failed for ${nid}:`, err);
           // Fallback: set all to "Other"
           for (const item of items) {
             if (!item.subCategory) item.subCategory = "Other";
           }
+          return 0;
         }
       },
     );
-    await Promise.allSettled(classifyPromises);
+    const classifyResults = await Promise.allSettled(classifyPromises);
+    for (const result of classifyResults) {
+      if (result.status === "fulfilled" && result.value) {
+        classificationTokens += result.value;
+      }
+    }
 
     // Generate AI summaries (global + per-need in parallel)
     const userConfig = getConfig();
