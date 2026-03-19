@@ -79,6 +79,14 @@ export interface BriefingItem {
   githubUrl?: string;         // GitHub repo URL
   upvotes?: number;           // Community upvotes (HF)
   aiKeywords?: string[];      // AI-generated keywords
+  subCategory?: string;       // AI-classified sub-category within the need
+}
+
+/** Token usage tracking for AI operations */
+export interface TokenUsage {
+  summary: number;            // Tokens used for summary generation
+  classification: number;     // Tokens used for sub-category classification
+  total: number;              // Total tokens consumed
 }
 
 /** A day's briefing aggregate */
@@ -89,6 +97,7 @@ export interface DailyBriefing {
   summaries?: Record<string, string>;  // Per-need AI summaries (keyed by needId)
   summaryLanguage?: "zh" | "en";  // Language of the generated summary
   summaryGeneratedAt?: string;     // When the summary was generated
+  tokenUsage?: TokenUsage;        // AI token consumption stats
   stats: BriefingStats;
 }
 

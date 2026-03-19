@@ -15,6 +15,7 @@ import {
   Plus,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   X,
   Sparkles,
   LayoutList,
@@ -80,6 +81,8 @@ export function DailyBriefingPage() {
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [pushing, setPushing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [summaryExpanded, setSummaryExpanded] = useState(false);
+  const [activeSubCategory, setActiveSubCategory] = useState<string>("all");
 
   // Load needs via API
   const loadNeeds = useCallback(async () => {
@@ -189,11 +192,14 @@ export function DailyBriefingPage() {
     return briefing.items.filter((i) => i.needId === activeNeedId);
   }, [briefing, activeNeedId]);
 
-  // Filtered items (source filter + search applied on top of need filter)
+  // Filtered items (source filter + sub-category filter + search applied on top of need filter)
   const filteredItems = useMemo(() => {
     let items = needFilteredItems;
     if (activeFilter !== "all") {
       items = items.filter((i) => i.sourceType === activeFilter);
+    }
+    if (activeSubCategory !== "all") {
+      items = items.filter((i) => (i.subCategory ?? "Other") === activeSubCategory);
     }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -205,15 +211,20 @@ export function DailyBriefingPage() {
       );
     }
     return items;
-  }, [needFilteredItems, activeFilter, searchQuery]);
+  }, [needFilteredItems, activeFilter, activeSubCategory, searchQuery]);
 
-  // Reset page when filters change
+  // Reset page and sub-category filter when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeNeedId, activeFilter, searchQuery]);
+  }, [activeNeedId, activeFilter, activeSubCategory, searchQuery]);
 
-  // Whether to show grouped view: "All" tab with no source filter and no search
-  const isGroupedView = activeNeedId === null && activeFilter === "all" && !searchQuery.trim();
+  // Reset sub-category filter when need tab changes
+  useEffect(() => {
+    setActiveSubCategory("all");
+  }, [activeNeedId]);
+
+  // Whether to show grouped view: "All" tab with no source filter, no sub-category filter, and no search
+  const isGroupedView = activeNeedId === null && activeFilter === "all" && activeSubCategory === "all" && !searchQuery.trim();
 
   // Group items by sourceType for grouped view
   const groupedItems = useMemo(() => {
@@ -272,6 +283,39 @@ export function DailyBriefingPage() {
   const sourceTypes = useMemo(() => {
     return [...new Set(needFilteredItems.map((i) => i.sourceType))];
   }, [needFilteredItems]);
+
+  // Sub-category counts for the active need tab
+  const subCategoryCounts = useMemo(() => {
+    if (activeNeedId === null) return new Map<string, number>();
+    const counts = new Map<string, number>();
+    for (const item of needFilteredItems) {
+      const cat = item.subCategory ?? "Other";
+      counts.set(cat, (counts.get(cat) ?? 0) + 1);
+    }
+    return counts;
+  }, [activeNeedId, needFilteredItems]);
+
+  // Whether to show sub-category grouped view: specific need tab with no sub-category filter and no search
+  const isSubCategoryGroupedView = useMemo(
+    () => activeNeedId !== null && activeSubCategory === "all" && activeFilter === "all" && !searchQuery.trim() && subCategoryCounts.size > 1,
+    [activeNeedId, activeSubCategory, activeFilter, searchQuery, subCategoryCounts],
+  );
+
+  // Group items by subCategory for sub-category grouped view
+  const subCategoryGroupedItems = useMemo(() => {
+    if (!isSubCategoryGroupedView) return new Map<string, BriefingItem[]>();
+    const groups = new Map<string, BriefingItem[]>();
+    for (const item of filteredItems) {
+      const cat = item.subCategory ?? "Other";
+      const existing = groups.get(cat);
+      if (existing) {
+        existing.push(item);
+      } else {
+        groups.set(cat, [item]);
+      }
+    }
+    return groups;
+  }, [isSubCategoryGroupedView, filteredItems]);
 
   // Active summary: per-need or global
   const activeSummary = useMemo(() => {
@@ -343,7 +387,7 @@ export function DailyBriefingPage() {
             variant={activeNeedId === null ? "default" : "outline"}
             size="sm"
             className="h-8 text-xs shrink-0 gap-1.5"
-            onClick={() => { setActiveNeedId(null); setActiveFilter("all"); }}
+            onClick={() => { setActiveNeedId(null); setActiveFilter("all"); setActiveSubCategory("all"); }}
           >
             {isZh ? "全部" : "All"}
             <Badge variant="secondary" className="h-4 min-w-[1.25rem] px-1 text-[10px] leading-none">
@@ -356,7 +400,7 @@ export function DailyBriefingPage() {
               variant={activeNeedId === need.id ? "default" : "outline"}
               size="sm"
               className="h-8 text-xs shrink-0 gap-1.5"
-              onClick={() => { setActiveNeedId(need.id); setActiveFilter("all"); }}
+              onClick={() => { setActiveNeedId(need.id); setActiveFilter("all"); setActiveSubCategory("all"); }}
             >
               {need.name}
               <Badge variant="secondary" className="h-4 min-w-[1.25rem] px-1 text-[10px] leading-none">
@@ -381,6 +425,52 @@ export function DailyBriefingPage() {
               </Button>
             );
           })}
+        </div>
+      )}
+
+      {/* Sub-category filter chips (only shown on specific need tabs) */}
+      {activeNeedId !== null && subCategoryCounts.size > 1 && (
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <button
+            type="button"
+            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
+              activeSubCategory === "all"
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted hover:bg-muted/80 text-muted-foreground"
+            }`}
+            onClick={() => setActiveSubCategory("all")}
+          >
+            {isZh ? "全部" : "All"}
+            <span className="text-[10px] opacity-70">{needFilteredItems.length}</span>
+          </button>
+          {[...subCategoryCounts.entries()]
+            .sort((a, b) => b[1] - a[1])
+            .map(([cat, count], idx) => {
+              const chipColors = [
+                "bg-blue-500/15 text-blue-700 dark:text-blue-300",
+                "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
+                "bg-purple-500/15 text-purple-700 dark:text-purple-300",
+                "bg-amber-500/15 text-amber-700 dark:text-amber-300",
+                "bg-rose-500/15 text-rose-700 dark:text-rose-300",
+                "bg-cyan-500/15 text-cyan-700 dark:text-cyan-300",
+                "bg-orange-500/15 text-orange-700 dark:text-orange-300",
+                "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300",
+              ];
+              const colorClass = activeSubCategory === cat
+                ? "bg-primary text-primary-foreground"
+                : chipColors[idx % chipColors.length];
+              return (
+                <button
+                  key={cat}
+                  type="button"
+                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${colorClass}`}
+                  onClick={() => setActiveSubCategory(cat)}
+                >
+                  {cat}
+                  <span className="text-[10px] opacity-70">{count}</span>
+                </button>
+              );
+            })}
         </div>
       )}
 
@@ -434,48 +524,91 @@ export function DailyBriefingPage() {
         </div>
       )}
 
-      {/* AI Summary (global or per-need) */}
-      {activeSummary && (
-        <div className="rounded-lg border bg-gradient-to-br from-primary/5 to-primary/10 p-5">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
-              <h3 className="text-sm font-semibold">
-                {activeNeedId === null
-                  ? (isZh ? "AI 简报摘要" : "AI Briefing Summary")
-                  : (isZh ? `AI 摘要 — ${needs.find((n) => n.id === activeNeedId)?.name ?? ""}` : `AI Summary — ${needs.find((n) => n.id === activeNeedId)?.name ?? ""}`)}
-              </h3>
-            </div>
-            {activeNeedId === null && briefing?.summaryGeneratedAt && (
-              <span className="text-[10px] text-muted-foreground">
-                {new Date(briefing.summaryGeneratedAt).toLocaleTimeString()}
-              </span>
+      {/* AI Summary (global or per-need) — collapsible */}
+      {activeSummary && (() => {
+        const lines = activeSummary.split("\n").filter((l) => l.trim());
+        const previewLines = lines.slice(0, 2);
+        const hasMoreLines = lines.length > 2;
+
+        const renderLine = (line: string, i: number) => (
+          <p
+            key={i}
+            className={
+              line.startsWith("- ") || line.startsWith("* ")
+                ? "ml-4"
+                : ""
+            }
+          >
+            {line.startsWith("# ") ? (
+              <strong>{line.slice(2)}</strong>
+            ) : line.startsWith("## ") ? (
+              <strong className="text-xs uppercase tracking-wider text-muted-foreground">
+                {line.slice(3)}
+              </strong>
+            ) : (
+              line
             )}
-          </div>
-          <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed">
-            {activeSummary.split("\n").map((line, i) => (
-              <p
-                key={i}
-                className={
-                  line.startsWith("- ") || line.startsWith("* ")
-                    ? "ml-4"
-                    : ""
-                }
-              >
-                {line.startsWith("# ") ? (
-                  <strong>{line.slice(2)}</strong>
-                ) : line.startsWith("## ") ? (
-                  <strong className="text-xs uppercase tracking-wider text-muted-foreground">
-                    {line.slice(3)}
-                  </strong>
-                ) : (
-                  line
+          </p>
+        );
+
+        return (
+          <div className="rounded-lg border bg-gradient-to-br from-primary/5 to-primary/10 p-5">
+            <button
+              type="button"
+              className="flex items-center justify-between w-full cursor-pointer"
+              onClick={() => setSummaryExpanded((p) => !p)}
+            >
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                <h3 className="text-sm font-semibold">
+                  {activeNeedId === null
+                    ? (isZh ? "AI 简报摘要" : "AI Briefing Summary")
+                    : (isZh ? `AI 摘要 — ${needs.find((n) => n.id === activeNeedId)?.name ?? ""}` : `AI Summary — ${needs.find((n) => n.id === activeNeedId)?.name ?? ""}`)}
+                </h3>
+              </div>
+              <div className="flex items-center gap-2">
+                {activeNeedId === null && briefing?.summaryGeneratedAt && (
+                  <span className="text-[10px] text-muted-foreground">
+                    {new Date(briefing.summaryGeneratedAt).toLocaleTimeString()}
+                  </span>
                 )}
-              </p>
-            ))}
+                <ChevronDown
+                  className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${summaryExpanded ? "rotate-180" : ""}`}
+                />
+              </div>
+            </button>
+
+            {/* Preview (always visible when collapsed) */}
+            {!summaryExpanded && (
+              <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed mt-3">
+                {previewLines.map(renderLine)}
+                {hasMoreLines && (
+                  <button
+                    type="button"
+                    className="text-xs text-primary hover:underline mt-1"
+                    onClick={(e) => { e.stopPropagation(); setSummaryExpanded(true); }}
+                  >
+                    {isZh ? "展开更多..." : "Show more..."}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Full content (with smooth transition) */}
+            <div
+              className="overflow-hidden transition-all duration-300 ease-in-out"
+              style={{
+                maxHeight: summaryExpanded ? "2000px" : "0px",
+                opacity: summaryExpanded ? 1 : 0,
+              }}
+            >
+              <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed mt-3">
+                {lines.map(renderLine)}
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
       {activeNeedId !== null && !activeSummary && briefing && needFilteredItems.length > 0 && (
         <div className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">
           {isZh
@@ -518,6 +651,23 @@ export function DailyBriefingPage() {
               needsMap={needsMap}
               onFeedback={handleFeedback}
               onMarkRead={handleMarkRead}
+            />
+          ))}
+        </div>
+      ) : isSubCategoryGroupedView ? (
+        /* Sub-category grouped view: cards grouped by AI sub-category */
+        <div className="space-y-6">
+          {[...subCategoryGroupedItems.entries()].map(([cat, items]) => (
+            <BriefingGroup
+              key={cat}
+              sourceType={items[0]?.sourceType ?? "rss"}
+              items={items}
+              viewMode={viewMode}
+              isZh={isZh}
+              needsMap={needsMap}
+              onFeedback={handleFeedback}
+              onMarkRead={handleMarkRead}
+              groupLabel={cat}
             />
           ))}
         </div>

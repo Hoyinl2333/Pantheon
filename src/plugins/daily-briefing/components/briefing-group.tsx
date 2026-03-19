@@ -12,6 +12,7 @@ import {
   Youtube,
   TrendingUp,
   Plug,
+  Tag,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -52,6 +53,10 @@ interface BriefingGroupProps {
   readonly needsMap: ReadonlyMap<string, string>;
   readonly onFeedback: (itemId: string, feedback: "good" | "bad" | "star") => void;
   readonly onMarkRead: (itemId: string) => void;
+  /** Override the group header label (e.g. for sub-category grouping) */
+  readonly groupLabel?: string;
+  /** Override the group header icon */
+  readonly groupIcon?: typeof Github;
 }
 
 function BriefingGroupInner({
@@ -62,14 +67,16 @@ function BriefingGroupInner({
   needsMap,
   onFeedback,
   onMarkRead,
+  groupLabel,
+  groupIcon,
 }: BriefingGroupProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
-  const Icon = SOURCE_ICONS[sourceType] ?? FileText;
-  const label = SOURCE_LABELS[sourceType]
+  const Icon = groupIcon ?? (groupLabel ? Tag : (SOURCE_ICONS[sourceType] ?? FileText));
+  const label = groupLabel ?? (SOURCE_LABELS[sourceType]
     ? (isZh ? SOURCE_LABELS[sourceType].zh : SOURCE_LABELS[sourceType].en)
-    : sourceType;
+    : sourceType);
 
   const visibleItems = expanded ? items : items.slice(0, DEFAULT_VISIBLE_COUNT);
   const hasMore = items.length > DEFAULT_VISIBLE_COUNT;

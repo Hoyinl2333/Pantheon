@@ -43,7 +43,13 @@ import type {
   InfoNeed,
   SearchStrategy,
   SourceConfig,
+  TokenUsage,
 } from "@/plugins/daily-briefing/types";
+
+/** Estimate token count from text (~4 chars per token) */
+function estimateTokens(text: string): number {
+  return Math.ceil(text.length / 4);
+}
 
 function todayStr(): string {
   return new Date().toISOString().slice(0, 10);
@@ -55,8 +61,8 @@ function todayStr(): string {
 async function generateSummary(
   items: BriefingItem[],
   language: "zh" | "en",
-): Promise<string> {
-  if (items.length === 0) return "";
+): Promise<{ text: string; tokens: number }> {
+  if (items.length === 0) return { text: "", tokens: 0 };
 
   const topItems = items.slice(0, 20);
   const itemSummaries = topItems
@@ -90,7 +96,9 @@ ${itemSummaries}
 Return the briefing text directly, no JSON wrapper.`;
 
   const result = await aiInvoke(prompt, { timeoutMs: 60000 });
-  return result ?? "";
+  const output = result ?? "";
+  const tokens = estimateTokens(prompt) + estimateTokens(output);
+  return { text: output, tokens };
 }
 
 /**
@@ -100,8 +108,8 @@ async function generateNeedSummary(
   needName: string,
   items: BriefingItem[],
   language: "zh" | "en",
-): Promise<string> {
-  if (items.length === 0) return "";
+): Promise<{ text: string; tokens: number }> {
+  if (items.length === 0) return { text: "", tokens: 0 };
 
   const topItems = items.slice(0, 15);
   const itemSummaries = topItems
@@ -134,7 +142,116 @@ ${itemSummaries}
 Return the summary text directly, no JSON wrapper.`;
 
   const result = await aiInvoke(prompt, { timeoutMs: 45000 });
-  return result ?? "";
+  const output = result ?? "";
+  const tokens = estimateTokens(prompt) + estimateTokens(output);
+  return { text: output, tokens };
+}
+
+/**
+ * Determine which sub-category set to use based on source types in items.
+ */
+function getSubCategoriesForNeed(need: InfoNeed, items: BriefingItem[]): string[] {
+  const sourceTypes = new Set(items.map((i) => i.sourceType));
+  const desc = `${need.description} ${need.name} ${need.strategy.relevancePrompt}`.toLowerCase();
+
+  if (sourceTypes.has("huggingface") || sourceTypes.has("arxiv") || desc.includes("paper") || desc.includes("论文")) {
+    return ["MLLM", "LLM", "RAG", "AI4S", "VLA", "Diffusion", "RL", "Other"];
+  }
+  if (sourceTypes.has("github")) {
+    return ["Framework", "Tool", "Model", "Dataset", "Tutorial", "Other"];
+  }
+  if (sourceTypes.has("finance") || desc.includes("股票") || desc.includes("stock") || desc.includes("finance")) {
+    return ["Tech", "Finance", "Energy", "Healthcare", "Macro", "Crypto", "Other"];
+  }
+  if (desc.includes("小红书") || desc.includes("xiaohongshu")) {
+    return ["论文解读", "工具推荐", "经验分享", "Other"];
+  }
+  if (desc.includes("news") || desc.includes("新闻")) {
+    return ["Tech", "Science", "Culture", "Trending", "Other"];
+  }
+  if (desc.includes("语言") || desc.includes("language learning") || desc.includes("english")) {
+    return ["Vocabulary", "Grammar", "Listening", "Speaking", "Other"];
+  }
+  return ["General"];
+}
+
+/**
+ * Classify items into sub-categories using AI.
+ * Mutates items in place to set subCategory field.
+ */
+async function classifySubCategories(
+  items: BriefingItem[],
+  need: InfoNeed,
+): Promise<void> {
+  if (items.length === 0) return;
+
+  const categories = getSubCategoriesForNeed(need, items);
+  // If only "General", skip AI call
+  if (categories.length === 1 && categories[0] === "General") {
+    for (const item of items) {
+      item.subCategory = "General";
+    }
+    return;
+  }
+
+  // Limit to top 50 items
+  const batch = items.slice(0, 50);
+  const itemList = batch
+    .map((item, i) => `${i + 1}. [id:${item.id}] ${item.title}`)
+    .join("\n");
+
+  const prompt = `You are a content classifier. Given these items for the "${need.name}" category (${need.description}), classify each into exactly one sub-category.
+
+Available sub-categories: ${categories.join(", ")}
+
+Items:
+${itemList}
+
+Return ONLY a valid JSON array with objects containing "id" and "subCategory" fields. Example:
+[{"id":"item-id-1","subCategory":"LLM"},{"id":"item-id-2","subCategory":"RAG"}]
+
+Return ONLY the JSON array, no markdown, no explanation.`;
+
+  const result = await aiInvoke(prompt, { timeoutMs: 45000 });
+  if (!result) {
+    for (const item of items) {
+      item.subCategory = "Other";
+    }
+    return;
+  }
+
+  // Parse response - try to extract JSON array
+  let classifications: { id: string; subCategory: string }[] = [];
+  try {
+    // Try direct parse first
+    classifications = JSON.parse(result);
+  } catch {
+    // Try extracting JSON from markdown code blocks or surrounding text
+    const jsonMatch = /\[[\s\S]*\]/.exec(result);
+    if (jsonMatch) {
+      try {
+        classifications = JSON.parse(jsonMatch[0]);
+      } catch {
+        // Parse failed
+      }
+    }
+  }
+
+  if (Array.isArray(classifications) && classifications.length > 0) {
+    const classMap = new Map<string, string>();
+    for (const c of classifications) {
+      if (c.id && c.subCategory && categories.includes(c.subCategory)) {
+        classMap.set(c.id, c.subCategory);
+      }
+    }
+    for (const item of items) {
+      item.subCategory = classMap.get(item.id) ?? "Other";
+    }
+  } else {
+    for (const item of items) {
+      item.subCategory = "Other";
+    }
+  }
 }
 
 /** Overall request timeout (90 seconds) to prevent hanging */
@@ -229,9 +346,40 @@ export async function POST(req: NextRequest) {
             isRead: prev.isRead,
             isFavorite: prev.isFavorite,
             userFeedback: prev.userFeedback,
+            subCategory: prev.subCategory ?? item.subCategory,
           }
         : item;
     });
+
+    // AI sub-category classification (per need, in parallel)
+    const classifyItemsByNeed = new Map<string, BriefingItem[]>();
+    for (const item of mergedItems) {
+      const arr = classifyItemsByNeed.get(item.needId) ?? [];
+      classifyItemsByNeed.set(item.needId, [...arr, item]);
+    }
+
+    // Build a needId -> need lookup for classification context
+    const needLookup = new Map<string, InfoNeed>();
+    for (const need of targetNeeds) {
+      needLookup.set(need.id, need);
+    }
+
+    const classifyPromises = [...classifyItemsByNeed.entries()].map(
+      async ([nid, items]) => {
+        const need = needLookup.get(nid);
+        if (!need) return;
+        try {
+          await classifySubCategories(items, need);
+        } catch (err) {
+          console.error(`[Briefing] Sub-category classification failed for ${nid}:`, err);
+          // Fallback: set all to "Other"
+          for (const item of items) {
+            if (!item.subCategory) item.subCategory = "Other";
+          }
+        }
+      },
+    );
+    await Promise.allSettled(classifyPromises);
 
     // Generate AI summaries (global + per-need in parallel)
     const userConfig = getConfig();
@@ -403,15 +551,16 @@ async function fetchGitHub(
   dateThreshold.setDate(dateThreshold.getDate() - 7);
   const dateStr = dateThreshold.toISOString().slice(0, 10);
 
-  const keywordQuery = keywords.join("+");
-  const query = `${keywordQuery}+created:>${dateStr}+stars:>10`;
+  // Use top 5 keywords to avoid overly long query strings (GitHub 422 error)
+  const topKeywords = keywords.slice(0, 5).join(" OR ");
+  const query = `${topKeywords} created:>${dateStr} stars:>5`;
   const perPage = source.config.per_page ?? "20";
   const url = `https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&sort=stars&order=desc&per_page=${perPage}`;
 
-  const res = await proxyFetch(url, {
-    headers: { Accept: "application/vnd.github.v3+json" },
-    signal: AbortSignal.timeout(15000),
-  });
+  const headers: Record<string, string> = { Accept: "application/vnd.github.v3+json" };
+  const ghToken = process.env.GITHUB_TOKEN || source.config.token;
+  if (ghToken) headers["Authorization"] = `Bearer ${ghToken}`;
+  const res = await proxyFetch(url, { headers, signal: AbortSignal.timeout(15000) });
 
   if (!res.ok) throw new Error(`GitHub API returned ${res.status}`);
 
@@ -1376,11 +1525,7 @@ function stripHtml(html: string): string {
 }
 
 function hashCode(str: string): string {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash = hash & hash;
-  }
-  return Math.abs(hash).toString(36);
+  // Use crypto hash (first 12 hex chars) to avoid 32-bit collisions
+  const crypto = require("crypto") as typeof import("crypto");
+  return crypto.createHash("md5").update(str).digest("hex").slice(0, 12);
 }

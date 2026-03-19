@@ -154,6 +154,16 @@ function SourceBadge({ sourceType }: { sourceType: SourceType }) {
   );
 }
 
+/** Sub-category badge pill */
+function SubCategoryBadge({ subCategory }: { subCategory: string }) {
+  if (!subCategory || subCategory === "General") return null;
+  return (
+    <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium bg-indigo-500/15 text-indigo-600 dark:text-indigo-400">
+      {subCategory}
+    </span>
+  );
+}
+
 /** Relevance percentage badge */
 function RelevanceBadge({ score }: { score: number }) {
   const pct = Math.round(score * 100);
@@ -371,6 +381,7 @@ export const BriefingCard = React.memo(function BriefingCard({
             {/* Top row: source badge + relevance */}
             <div className="flex items-center gap-2">
               <SourceBadge sourceType={item.sourceType} />
+              {item.subCategory && <SubCategoryBadge subCategory={item.subCategory} />}
               <RelevanceBadge score={item.relevanceScore} />
               {needName && (
                 <span className="text-[11px] text-primary/70 truncate">
